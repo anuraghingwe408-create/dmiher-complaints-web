@@ -9,9 +9,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase limit for Base64 files
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
 
 // File validation function
 function validateAttachment(attachment) {
@@ -76,13 +76,17 @@ app.get('/api/complaints', async (req, res) => {
 // Add new complaint
 app.post('/api/complaints', async (req, res) => {
     try {
+        console.log('📥 Received complaint submission');
         const { attachment, ...complaintData } = req.body;
         
         // Validate attachment if present
         if (attachment) {
+            console.log('📎 Attachment detected:', attachment.filename, 'Size:', attachment.size);
             try {
                 validateAttachment(attachment);
+                console.log('✅ Attachment validation passed');
             } catch (validationError) {
+                console.error('❌ Attachment validation failed:', validationError.message);
                 return res.status(400).json({ 
                     success: false, 
                     error: validationError.message 
@@ -104,13 +108,16 @@ app.post('/api/complaints', async (req, res) => {
             attachment: attachment || null
         };
 
+        console.log('💾 Saving complaint to database...');
         const complaint = await Complaint.create(newComplaint);
+        console.log('✅ Complaint saved successfully:', complaint.id);
         res.json({ success: true, complaint });
     } catch (error) {
-        console.error('Error saving complaint:', error);
+        console.error('❌ Error saving complaint:', error);
+        console.error('Error details:', error.message);
         res.status(500).json({ 
             success: false, 
-            error: 'Failed to save complaint' 
+            error: error.message || 'Failed to save complaint' 
         });
     }
 });

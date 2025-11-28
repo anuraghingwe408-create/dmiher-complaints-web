@@ -77,6 +77,7 @@
 
 
 
+
     - Display PDF icon with filename for PDF attachments
     - Add styling for preview container
 

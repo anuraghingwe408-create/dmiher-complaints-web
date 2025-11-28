@@ -327,6 +327,8 @@
       }
       
       try {
+        console.log('📤 Submitting complaint...', formData.attachment ? 'with attachment' : 'without attachment');
+        
         const response = await fetch('/api/complaints', {
           method: 'POST',
           headers: {
@@ -335,7 +337,9 @@
           body: JSON.stringify(formData)
         });
         
+        console.log('📥 Response status:', response.status);
         const data = await response.json();
+        console.log('📥 Response data:', data);
         
         if (data.success) {
           alert('✅ Complaint submitted successfully! Complaint ID: ' + data.complaint.id);
@@ -345,11 +349,12 @@
           document.getElementById('previewArea').innerHTML = '';
           selectedFile = null;
         } else {
+          console.error('❌ Server error:', data.error);
           alert('❌ Failed to submit complaint: ' + (data.error || 'Unknown error'));
         }
       } catch (error) {
-        console.error('Error submitting complaint:', error);
-        alert('❌ Error submitting complaint. Please try again.');
+        console.error('❌ Error submitting complaint:', error);
+        alert('❌ Error submitting complaint: ' + error.message + '. Please check console for details.');
       }
     });
     
