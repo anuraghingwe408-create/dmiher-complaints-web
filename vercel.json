@@ -4,33 +4,40 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
-      "src": "/login",
-      "dest": "server.js"
+      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico))",
+      "dest": "/public/$1"
     },
     {
-      "src": "/student",
-      "dest": "server.js"
+      "src": "/",
+      "dest": "/public/index.html"
     },
     {
-      "src": "/faculty",
-      "dest": "server.js"
+      "src": "/login.html",
+      "dest": "/public/login.html"
+    },
+    {
+      "src": "/student.html",
+      "dest": "/public/student.html"
+    },
+    {
+      "src": "/faculty.html",
+      "dest": "/public/faculty.html"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     }
-  ],
-  "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "FACULTY_PASSWORD": "@faculty_password",
-    "NODE_ENV": "production"
-  }
+  ]
 }
