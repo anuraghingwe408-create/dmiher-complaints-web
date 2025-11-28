@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { pool, testConnection, initializeDatabase } = require('./database/db');
+const { connectDB, initializeDatabase, Faculty, Student, Complaint } = require('./database/mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,12 +15,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 
-// Serve main page
+// Serve login page as default
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Serve faculty page
+// Serve student portal (requires login)
+app.get('/student', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'student.html'));
+});
+
+// Serve faculty page (requires login)
 app.get('/faculty', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'faculty.html'));
 });
@@ -28,9 +33,7 @@ app.get('/faculty', (req, res) => {
 // Get all complaints
 app.get('/api/complaints', async (req, res) => {
     try {
-        const [complaints] = await pool.query(
-            'SELECT * FROM complaints ORDER BY created_at DESC'
-        );
+        const complaints = await Complaint.find().sort({ created_at: -1 });
         res.json(complaints);
     } catch (error) {
         console.error('Error fetching complaints:', error);
@@ -54,24 +57,8 @@ app.post('/api/complaints', async (req, res) => {
             status: 'Pending'
         };
 
-        await pool.query(
-            `INSERT INTO complaints (id, student_id, student_name, student_email, department, year, complaint_type, subject, description, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                newComplaint.id,
-                newComplaint.student_id,
-                newComplaint.student_name,
-                newComplaint.student_email,
-                newComplaint.department,
-                newComplaint.year,
-                newComplaint.complaint_type,
-                newComplaint.subject,
-                newComplaint.description,
-                newComplaint.status
-            ]
-        );
-
-        res.json({ success: true, complaint: newComplaint });
+        const complaint = await Complaint.create(newComplaint);
+        res.json({ success: true, complaint });
     } catch (error) {
         console.error('Error saving complaint:', error);
         res.status(500).json({ error: 'Failed to save complaint' });
@@ -83,34 +70,24 @@ app.put('/api/complaints/:id', async (req, res) => {
     try {
         const { status, facultyResponse } = req.body;
         
-        const updateFields = [];
-        const values = [];
-
-        if (status) {
-            updateFields.push('status = ?');
-            values.push(status);
-        }
-
+        const updateData = {};
+        if (status) updateData.status = status;
         if (facultyResponse) {
-            updateFields.push('faculty_response = ?');
-            values.push(facultyResponse);
-            updateFields.push('responded_at = NOW()');
+            updateData.faculty_response = facultyResponse;
+            updateData.responded_at = new Date();
         }
 
-        values.push(req.params.id);
-
-        await pool.query(
-            `UPDATE complaints SET ${updateFields.join(', ')} WHERE id = ?`,
-            values
+        const complaint = await Complaint.findOneAndUpdate(
+            { id: req.params.id },
+            updateData,
+            { new: true }
         );
-
-        const [complaints] = await pool.query('SELECT * FROM complaints WHERE id = ?', [req.params.id]);
         
-        if (complaints.length === 0) {
+        if (!complaint) {
             return res.status(404).json({ error: 'Complaint not found' });
         }
 
-        res.json({ success: true, complaint: complaints[0] });
+        res.json({ success: true, complaint });
     } catch (error) {
         console.error('Error updating complaint:', error);
         res.status(500).json({ error: 'Failed to update complaint' });
@@ -120,7 +97,7 @@ app.put('/api/complaints/:id', async (req, res) => {
 // Delete complaint
 app.delete('/api/complaints/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM complaints WHERE id = ?', [req.params.id]);
+        await Complaint.findOneAndDelete({ id: req.params.id });
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting complaint:', error);
@@ -133,21 +110,19 @@ app.post('/api/student/login', async (req, res) => {
     try {
         const { course, studentId, password } = req.body;
         
-        const [students] = await pool.query(
-            'SELECT * FROM students WHERE id = ? AND password = ? AND course = ?',
-            [studentId, password, course]
-        );
+        const student = await Student.findOne({ id: studentId, password, course });
 
-        if (students.length > 0) {
+        if (student) {
             // Verify email format for existing students
-            if (!isValidDMIHEREmail(students[0].email)) {
+            if (!isValidDMIHEREmail(student.email)) {
                 return res.status(401).json({ 
                     success: false, 
                     error: 'Invalid email format. Please contact administrator to update your email.' 
                 });
             }
             
-            const { password, ...studentData } = students[0];
+            const studentData = student.toObject();
+            delete studentData.password;
             res.json({ success: true, student: studentData });
         } else {
             res.status(401).json({ success: false, error: 'Invalid credentials' });
@@ -158,45 +133,95 @@ app.post('/api/student/login', async (req, res) => {
     }
 });
 
-// Faculty authentication
-app.post('/api/faculty/login', (req, res) => {
-    const { password } = req.body;
-    const FACULTY_PASSWORD = process.env.FACULTY_PASSWORD || 'admin123';
+// Unified Login (Student & Faculty)
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Validate DMIHER email format
+        if (!isValidDMIHEREmail(email)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid email format. Use: scXXXXsaXXXXX@dmiher.edu.in (e.g., sc2024sa00087@dmiher.edu.in)' 
+            });
+        }
+        
+        // Check if it's a faculty login (check faculty table first)
+        const faculty = await Faculty.findOne({ email, password });
+        
+        if (faculty) {
+            const facultyData = faculty.toObject();
+            delete facultyData.password;
+            return res.json({ 
+                success: true, 
+                userType: 'faculty',
+                user: facultyData 
+            });
+        }
+        
+        // Check if it's a student login
+        const student = await Student.findOne({ email, password });
+        
+        if (student) {
+            const studentData = student.toObject();
+            delete studentData.password;
+            return res.json({ 
+                success: true, 
+                userType: 'student',
+                user: studentData 
+            });
+        }
+        
+        // No match found
+        res.status(401).json({ success: false, error: 'Invalid email or password' });
+        
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
 
-    if (password === FACULTY_PASSWORD) {
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ success: false, error: 'Invalid password' });
+// Legacy faculty login endpoint (for backward compatibility)
+app.post('/api/faculty/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // If email is provided, use new unified login
+        if (email) {
+            return res.redirect(307, '/api/login');
+        }
+        
+        // Legacy password-only login (deprecated)
+        const FACULTY_PASSWORD = process.env.FACULTY_PASSWORD || 'admin123';
+        if (password === FACULTY_PASSWORD) {
+            res.json({ success: true });
+        } else {
+            res.status(401).json({ success: false, error: 'Invalid password' });
+        }
+    } catch (error) {
+        console.error('Error during faculty login:', error);
+        res.status(500).json({ error: 'Login failed' });
     }
 });
 
 // Email validation function
 function isValidDMIHEREmail(email) {
-    // Check if email ends with @dmiher.edu.in
-    if (!email.endsWith('@dmiher.edu.in')) {
-        return false;
-    }
-    
-    // Extract the local part (before @)
-    const localPart = email.split('@')[0];
-    
-    // Check if it matches the pattern: scXXXXsaXXXX (where X is a digit)
-    // sc followed by 4 digits, then sa, then 4 digits
-    const pattern = /^sc\d{4}sa\d{4}$/;
-    
-    return pattern.test(localPart);
+    // Only accept format: scXXXXsaXXXXX@dmiher.edu.in
+    // Example: sc2024sa00087@dmiher.edu.in
+    const emailPattern = /^sc\d{4}sa\d{5}@dmiher\.edu\.in$/;
+    return emailPattern.test(email);
 }
 
 // Register new student
 app.post('/api/student/register', async (req, res) => {
     try {
-        const { name, course, email, phone } = req.body;
+        const { name, course, email, password, phone } = req.body;
 
         // Validate DMIHER email format
         if (!isValidDMIHEREmail(email)) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Invalid email format. Please use your official DMIHER email (format: scXXXXsaXXXX@dmiher.edu.in)' 
+                error: 'Invalid email format. Use: scXXXXsaXXXXX@dmiher.edu.in (e.g., sc2024sa00087@dmiher.edu.in)' 
             });
         }
 
@@ -211,27 +236,30 @@ app.post('/api/student/register', async (req, res) => {
         const prefix = coursePrefix[course] || 'STU';
         const year = new Date().getFullYear();
         
-        const [rows] = await pool.query(
-            'SELECT COUNT(*) as count FROM students WHERE course = ?',
-            [course]
-        );
-        
-        const nextSerial = rows[0].count + 1;
+        const count = await Student.countDocuments({ course });
+        const nextSerial = count + 1;
         const studentId = `${prefix}${year}${String(nextSerial).padStart(3, '0')}`;
 
-        // Generate password
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let password = '';
-        for (let i = 0; i < 8; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        // Check if email already exists
+        const existing = await Student.findOne({ email });
+        
+        if (existing) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email already registered' 
+            });
         }
 
-        // Insert new student
-        await pool.query(
-            `INSERT INTO students (id, password, name, dept, email, phone, course)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [studentId, password, name, course.toUpperCase(), email, phone, course]
-        );
+        // Insert new student with provided password
+        const newStudent = await Student.create({
+            id: studentId,
+            password,
+            name,
+            dept: course.toUpperCase(),
+            email,
+            phone,
+            course
+        });
 
         res.json({
             success: true,
@@ -253,7 +281,7 @@ app.post('/api/student/register', async (req, res) => {
 // Get all students (for admin)
 app.get('/api/students', async (req, res) => {
     try {
-        const [students] = await pool.query('SELECT * FROM students ORDER BY course, id');
+        const students = await Student.find().sort({ course: 1, id: 1 });
         
         // Group by course
         const groupedStudents = students.reduce((acc, student) => {
@@ -274,13 +302,13 @@ app.get('/api/students', async (req, res) => {
 // Initialize database and start server
 async function startServer() {
     try {
-        // Test database connection
-        const connected = await testConnection();
+        // Connect to MongoDB
+        const connected = await connectDB();
         
         if (!connected) {
-            console.error('⚠️  Starting without database connection. Please check your MySQL configuration.');
+            console.error('⚠️  Starting without database connection. Please check your MongoDB configuration.');
         } else {
-            // Initialize database tables
+            // Initialize database with default data
             await initializeDatabase();
         }
 
@@ -291,7 +319,7 @@ async function startServer() {
             console.log(`📚 Student Portal: http://localhost:${PORT}/`);
             console.log(`👨‍🏫 Faculty Portal: http://localhost:${PORT}/faculty`);
             console.log(`🔑 Faculty Password: ${process.env.FACULTY_PASSWORD || 'admin123'}`);
-            console.log('✅ MySQL Database connected');
+            console.log('✅ MongoDB Database connected');
         });
     } catch (error) {
         console.error('Failed to start server:', error);

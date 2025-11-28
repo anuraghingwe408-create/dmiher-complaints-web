@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DMIHER Complaint Registration & Tracking System</title>
+  <title>DMIHER - Student Portal</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -21,102 +21,28 @@
       border-radius: 6px;
       border-left: 4px solid #059669;
     }
-    .domain-info {
-      background: #fffbeb;
-      border: 1px solid #fcd34d;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 15px 0;
-      font-size: 14px;
-    }
   </style>
 </head>
 <body>
   <div class="bg-overlay"></div>
   <header class="header container">
     <div class="brand">
-      <div class="logo"></S></div>
+      <div class="logo">S</div>
       <div class="brand-text">
-        <div class="title">SAS</div>
-        <div class="subtitle">Complaint Registration & Tracking System</div>
+        <div class="title">DMIHER</div>
+        <div class="subtitle">Student Portal</div>
       </div>
     </div>
     <nav class="nav">
-      <a class="nav-link active" href="index.html">Student</a>
-      <a class="nav-link" href="faculty.html">Faculty</a>
+      <button class="btn" id="logoutBtn" type="button">Logout</button>
     </nav>
   </header>
   
-  <!-- Student Login Section -->
-  <section id="loginSection" class="container">
-    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
-      <h2>Student Login</h2>
-      <p class="meta" style="margin-bottom: 16px;">Use your DMIHER college email and password</p>
-      
-      <div class="domain-info">
-        <strong>⚠️ Access Restricted</strong><br>
-        Only students with valid <strong>@dmiher.edu.in</strong> email addresses can login and submit complaints.
-      </div>
-      
-      <form id="loginForm" class="form" autocomplete="off">
-        <input id="studentEmail" name="studentEmail" type="email" placeholder="collegeemail@dmiher.edu.in" required />
-        <input id="studentPassword" name="studentPassword" type="password" placeholder="Password" required />
-        
-        <div class="actions">
-          <button class="btn primary" type="submit">Login</button>
-        </div>
-      </form>
-      
-      <div style="text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
-        <p class="meta">New student? 
-          <a href="#" id="showRegistration" style="color: var(--primary); text-decoration: none; font-weight: 600;">Register First</a>
-        </p>
-      </div>
-      
-      <div id="loginMessage" class="meta" style="margin-top: 12px; color: #ef4444; display: none;"></div>
-    </div>
-  </section>
-  
-  <!-- Student Registration Section -->
-  <section id="registrationSection" class="container" style="display: none;">
-    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
-      <h2>Student Registration</h2>
-      <p class="meta" style="margin-bottom: 16px;">Register with your DMIHER college email</p>
-      
-      <div class="domain-info">
-        <strong>📧 Email Requirement</strong><br>
-        You must use your official <strong>@dmiher.edu.in</strong> email address to register.
-      </div>
-      
-      <form id="registrationForm" class="form" autocomplete="off">
-        <input id="regName" name="regName" placeholder="Full Name as per college records" required />
-        <input id="regEmail" name="regEmail" type="email" placeholder="collegeemail@dmiher.edu.in" required />
-        <input id="regPassword" name="regPassword" type="password" placeholder="Create Password" required />
-        <input id="regConfirmPassword" name="regConfirmPassword" type="password" placeholder="Confirm Password" required />
-        <select id="regCourse" name="regCourse" required>
-          <option value="">Select Your Course</option>
-          <option value="bca">BCA - Bachelor of Computer Applications</option>
-          <option value="bba">BBA - Bachelor of Business Administration</option>
-          <option value="mca">MCA - Master of Computer Applications</option>
-          <option value="bsc_aids">BSc AIDS - Artificial Intelligence & Data Science</option>
-        </select>
-        
-        <div class="actions">
-          <button class="btn primary" type="submit">Register</button>
-          <button class="btn secondary" type="button" id="backToLogin">Back to Login</button>
-        </div>
-      </form>
-      
-      <div id="registrationMessage" class="meta" style="margin-top: 12px; display: none;"></div>
-    </div>
-  </section>
-  
-  <!-- Main Content (hidden until login) -->
-  <main id="mainContent" class="container" style="display: none;">
+  <!-- Main Content -->
+  <main id="mainContent" class="container">
     <section class="card form-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h2 id="complaintTitle">Submit a Complaint</h2>
-        <button class="btn" id="logoutStudentBtn" type="button">Logout</button>
       </div>
       
       <!-- Faculty Response Receipt Section -->
@@ -187,16 +113,20 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     
-    // Navigation between login and registration
-    document.getElementById('showRegistration').addEventListener('click', function(e) {
-      e.preventDefault();
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('registrationSection').style.display = 'block';
-    });
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const userType = localStorage.getItem('userType');
     
-    document.getElementById('backToLogin').addEventListener('click', function() {
-      document.getElementById('registrationSection').style.display = 'none';
-      document.getElementById('loginSection').style.display = 'block';
+    if (!user || userType !== 'student') {
+      // Not logged in or not a student, redirect to login
+      window.location.href = '/';
+    }
+    
+    // Logout handler
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('userType');
+      window.location.href = '/';
     });
     
     // Initialize the page

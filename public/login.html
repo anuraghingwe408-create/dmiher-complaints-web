@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DMIHER - Login</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .domain-info {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 15px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .domain-info strong {
+      color: #1e40af;
+    }
+    .email-format {
+      background: #f0fdf4;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #059669;
+      display: inline-block;
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+  <header class="header container">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div class="brand-text">
+        <div class="title">DMIHER</div>
+        <div class="subtitle">Complaint Registration & Tracking System</div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Unified Login Section -->
+  <section id="loginSection" class="container">
+    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
+      <h2>Login</h2>
+      <p class="meta" style="margin-bottom: 24px;">Student & Faculty Portal</p>
+      
+      <form id="loginForm" class="form" autocomplete="off">
+        <input 
+          id="email" 
+          name="email" 
+          type="email" 
+          placeholder="your.email@dmiher.edu.in" 
+          required 
+          title="Please use your DMIHER email address"
+        />
+        <input 
+          id="password" 
+          name="password" 
+          type="password" 
+          placeholder="Password" 
+          required 
+        />
+        
+        <div class="actions">
+          <button class="btn primary" type="submit">Login</button>
+        </div>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+        <p class="meta">New student? 
+          <a href="#" id="showRegistration" style="color: var(--primary); text-decoration: none; font-weight: 600;">Register Here</a>
+        </p>
+      </div>
+      
+      <div id="loginMessage" class="meta" style="margin-top: 12px; display: none;"></div>
+    </div>
+  </section>
+  
+  <!-- Student Registration Section -->
+  <section id="registrationSection" class="container" style="display: none;">
+    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
+      <h2>Student Registration</h2>
+      <p class="meta" style="margin-bottom: 16px;">Create your account</p>
+      
+      <form id="registrationForm" class="form" autocomplete="off">
+        <input 
+          id="regName" 
+          name="regName" 
+          placeholder="Full Name" 
+          required 
+        />
+        <input 
+          id="regEmail" 
+          name="regEmail" 
+          type="email" 
+          placeholder="your.email@dmiher.edu.in" 
+          required 
+          pattern=".*@dmiher\.edu\.in$"
+          title="Email must end with @dmiher.edu.in"
+        />
+        <input 
+          id="regPassword" 
+          name="regPassword" 
+          type="password" 
+          placeholder="Create Password" 
+          required 
+          minlength="6"
+        />
+        <input 
+          id="regConfirmPassword" 
+          name="regConfirmPassword" 
+          type="password" 
+          placeholder="Confirm Password" 
+          required 
+        />
+        <input 
+          id="regPhone" 
+          name="regPhone" 
+          type="tel" 
+          placeholder="Phone Number (optional)" 
+          pattern="[0-9]{10}"
+        />
+        <select id="regCourse" name="regCourse" required>
+          <option value="">Select Your Course</option>
+          <option value="bca">BCA - Bachelor of Computer Applications</option>
+          <option value="bba">BBA - Bachelor of Business Administration</option>
+          <option value="mca">MCA - Master of Computer Applications</option>
+          <option value="bsc_aids">BSc AIDS - Artificial Intelligence & Data Science</option>
+        </select>
+        
+        <div class="actions">
+          <button class="btn primary" type="submit">Register</button>
+          <button class="btn secondary" type="button" id="backToLogin">Back to Login</button>
+        </div>
+      </form>
+      
+      <div id="registrationMessage" class="meta" style="margin-top: 12px; display: none;"></div>
+    </div>
+  </section>
+
+  <footer class="footer">© <span id="year"></span> DMIHER Complaint Registration & Tracking System</footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    
+    // Navigation between login and registration
+    document.getElementById('showRegistration').addEventListener('click', function(e) {
+      e.preventDefault();
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('registrationSection').style.display = 'block';
+    });
+    
+    document.getElementById('backToLogin').addEventListener('click', function() {
+      document.getElementById('registrationSection').style.display = 'none';
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('registrationMessage').style.display = 'none';
+    });
+    
+    // Unified Login Handler
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const messageDiv = document.getElementById('loginMessage');
+      
+      // Validate DMIHER email
+      if (!email.endsWith('@dmiher.edu.in')) {
+        messageDiv.textContent = 'Please use your DMIHER email address (@dmiher.edu.in)';
+        messageDiv.style.color = '#ef4444';
+        messageDiv.style.display = 'block';
+        return;
+      }
+      
+      messageDiv.textContent = 'Logging in...';
+      messageDiv.style.color = '#3b82f6';
+      messageDiv.style.display = 'block';
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Store user data
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('userType', data.userType);
+          
+          // Redirect based on user type
+          if (data.userType === 'faculty') {
+            window.location.href = '/faculty';
+          } else {
+            window.location.href = '/student';
+          }
+        } else {
+          messageDiv.textContent = data.error || 'Invalid email or password';
+          messageDiv.style.color = '#ef4444';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'Login failed. Please try again.';
+        messageDiv.style.color = '#ef4444';
+      }
+    });
+    
+    // Registration Handler
+    document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+      const phone = document.getElementById('regPhone').value.trim();
+      const course = document.getElementById('regCourse').value;
+      const messageDiv = document.getElementById('registrationMessage');
+      
+      // Validate email domain only
+      if (!email.endsWith('@dmiher.edu.in')) {
+        messageDiv.textContent = 'Please use your official DMIHER email address (@dmiher.edu.in)';
+        messageDiv.style.color = '#ef4444';
+        messageDiv.style.display = 'block';
+        return;
+      }
+      
+      // Validate passwords match
+      if (password !== confirmPassword) {
+        messageDiv.textContent = 'Passwords do not match';
+        messageDiv.style.color = '#ef4444';
+        messageDiv.style.display = 'block';
+        return;
+      }
+      
+      messageDiv.textContent = 'Registering...';
+      messageDiv.style.color = '#3b82f6';
+      messageDiv.style.display = 'block';
+      
+      try {
+        const response = await fetch('/api/student/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, phone, course })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          messageDiv.textContent = 'Registration successful! Please login with your email and password.';
+          messageDiv.style.color = '#059669';
+          
+          // Clear form
+          document.getElementById('registrationForm').reset();
+          
+          // Switch to login after 2 seconds
+          setTimeout(() => {
+            document.getElementById('registrationSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('registrationMessage').style.display = 'none';
+          }, 2000);
+        } else {
+          messageDiv.textContent = data.error || 'Registration failed';
+          messageDiv.style.color = '#ef4444';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'Registration failed. Please try again.';
+        messageDiv.style.color = '#ef4444';
+      }
+    });
+  </script>
+</body>
+</html>

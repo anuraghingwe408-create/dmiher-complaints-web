@@ -1,173 +1,84 @@
 # Quick Start Guide
 
-## ✅ What You Have Now
+Get your DMIHER Complaint Portal up and running in 5 minutes!
 
-Your project is ready with:
-- ✅ MySQL database integration
-- ✅ Environment configuration (.env)
-- ✅ Git ignore rules (.gitignore)
-- ✅ Complete documentation
-- ✅ Deployment guides
-
-## 🚀 Next Steps
-
-### Step 1: Restart Your Terminal
-After installing Git, **close and reopen** PowerShell/Terminal.
-
-### Step 2: Verify Git Installation
-```bash
-git --version
-```
-
-Should show: `git version 2.x.x`
-
-### Step 3: Configure Git (First Time)
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-```
-
-### Step 4: Initialize Git Repository
-```bash
-# In your project folder
-git init
-git add .
-git commit -m "Initial commit: DMIHER Complaint Portal with MySQL"
-```
-
-### Step 5: Create GitHub Repository
-
-**Option A: GitHub Website**
-1. Go to https://github.com/new
-2. Repository name: `dmiher-complaint-portal`
-3. Make it Public or Private
-4. **Don't** check "Initialize with README"
-5. Click "Create repository"
-
-**Option B: GitHub Desktop**
-1. Open GitHub Desktop
-2. File → Add Local Repository
-3. Choose your project folder
-4. Publish to GitHub
-
-### Step 6: Connect to GitHub
-
-Copy the commands from GitHub (after creating repo):
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/dmiher-complaint-portal.git
-git branch -M main
-git push -u origin main
-```
-
-**Replace YOUR_USERNAME with your actual GitHub username!**
-
-### Step 7: Deploy to Railway (Recommended)
-
-1. Go to https://railway.app
-2. Sign in with GitHub
-3. Click "New Project"
-4. Select "Deploy from GitHub repo"
-5. Choose your repository
-6. Click "Add MySQL" database
-7. Your app will deploy automatically!
-
-Railway will:
-- ✅ Install dependencies
-- ✅ Create MySQL database
-- ✅ Set up environment variables
-- ✅ Deploy your app
-- ✅ Give you a live URL
-
-## 📋 Checklist
-
-Before deploying, make sure:
-
-- [ ] Git is installed and recognized
-- [ ] Repository is on GitHub
-- [ ] .env file is NOT in GitHub (check .gitignore)
-- [ ] README.md is updated with your repo URL
-- [ ] MySQL credentials are in .env
-- [ ] All files are committed
-
-## 🎯 Testing Locally First
-
-Before deploying, test locally:
+## Step 1: Install Dependencies
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Start MySQL (if not running)
-# Windows: Check Services
-# Mac: brew services start mysql
-# Linux: sudo systemctl start mysql
+## Step 2: Configure MongoDB
 
-# Start the server
+Your MongoDB Atlas connection is already configured in `.env`:
+
+```env
+MONGODB_URI=mongodb+srv://anuraghingwe001:anuraghingwe%40001@cluster1.axcxah4.mongodb.net/dmiher_complaints?retryWrites=true&w=majority
+```
+
+✅ **MongoDB is ready to use!**
+
+## Step 3: Start the Server
+
+```bash
 npm start
 ```
 
-Visit:
-- Student Portal: http://localhost:3000
-- Faculty Portal: http://localhost:3000/faculty
-
-Test with default accounts:
-- Student: BCA2023001 / bca123
-- Faculty: admin123
-
-## 🔧 If Git Still Not Working
-
-### Windows
-1. Open "Environment Variables"
-2. Edit "Path" in System Variables
-3. Add: `C:\Program Files\Git\cmd`
-4. Restart terminal
-
-### Verify Installation
-```bash
-where git
+You should see:
+```
+✅ MongoDB connected successfully
+✅ Default faculty account created
+✅ Default students created
+✅ Database initialized
+🚀 DMIHER Complaint Portal Server Started!
+📍 Server running on: http://localhost:3000
 ```
 
-Should show: `C:\Program Files\Git\cmd\git.exe`
+## Step 4: Test the Application
 
-## 📱 After Deployment
+### Test Student Registration
+1. Open http://localhost:3000
+2. Click "Register" button
+3. Fill in the form:
+   - Name: testing bot
+   - Email: sc2024sa00087@dmiher.edu.in *(Must follow format: scXXXXsaXXXXX@dmiher.edu.in)*
+   - Password: (your choice)
+   - Confirm Password: (same as above)
+   - Phone: 7855858745
+   - Course: BCA - Bachelor of Computer Applications
+4. Click "Register"
 
-Once deployed on Railway:
+**Note**: Email must be in format `scXXXXsaXXXXX@dmiher.edu.in` (e.g., sc2024sa00087@dmiher.edu.in)
 
-1. Get your app URL (e.g., `your-app.railway.app`)
-2. Test student login
-3. Test faculty portal
-4. Submit a test complaint
-5. Verify database is working
+### Test Login
+1. Use the credentials you just created
+2. Or use default accounts:
+   - **Faculty**: sc2024sa99999@dmiher.edu.in / admin123
+   - **Student**: sc2023sa00001@dmiher.edu.in / bca123
 
-## 🆘 Common Issues
+## Troubleshooting
 
-### "git not recognized"
-- **Solution**: Restart terminal after Git installation
+### Server won't start?
+- Make sure port 3000 is not in use
+- Check if MongoDB connection string is correct in `.env`
 
-### "Permission denied"
-- **Solution**: Use HTTPS URL instead of SSH
+### Can't connect to MongoDB?
+- Verify your MongoDB Atlas cluster is running
+- Check if your IP address is whitelisted in MongoDB Atlas
+- Ensure the connection string password is URL-encoded
 
-### "Port already in use"
-- **Solution**: Change PORT in .env
+### Registration fails?
+- Make sure you're using @dmiher.edu.in email
+- Check server console for error messages
+- Verify MongoDB connection is active
 
-### "Database connection failed"
-- **Solution**: Check MySQL is running and credentials are correct
+## Next Steps
 
-## 📚 Documentation Files
+- Customize the faculty password in `.env`
+- Add more default students if needed
+- Deploy to production (Render, Railway, or Heroku)
+- Set up your custom domain
 
-- `README.md` - Project overview
-- `DEPLOYMENT.md` - Detailed deployment guide
-- `DATABASE_SETUP.md` - MySQL setup instructions
-- `GIT_SETUP.md` - Complete Git guide
-- `QUICK_START.md` - This file
+## Need Help?
 
-## 🎉 You're Ready!
-
-Your project is fully configured and ready to deploy. Follow the steps above and you'll have a live application in minutes!
-
----
-
-**Need Help?**
-- Check GIT_SETUP.md for detailed Git instructions
-- Check DEPLOYMENT.md for deployment options
-- Check DATABASE_SETUP.md for MySQL help
+Check the main README.md for detailed documentation or create an issue in the repository.

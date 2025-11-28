@@ -1,379 +1,232 @@
-# Command Reference Card
+# Useful Commands
 
-## 🚀 Quick Commands
+Quick reference for common commands.
 
-### First Time Setup (Do Once)
+## Development
 
+### Start Server
 ```bash
-# 1. Configure Git
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-
-# 2. Initialize Repository
-git init
-git add .
-git commit -m "Initial commit: DMIHER Complaint Portal with MySQL"
-
-# 3. Connect to GitHub (replace YOUR_USERNAME)
-git remote add origin https://github.com/YOUR_USERNAME/dmiher-complaint-portal.git
-git branch -M main
-git push -u origin main
-```
-
-### Daily Development
-
-```bash
-# Start the server
 npm start
-
-# Check what changed
-git status
-
-# Save changes
-git add .
-git commit -m "Description of what you changed"
-git push
-```
-
-### Database Commands
-
-```bash
-# Start MySQL
-# Windows: Check Services (services.msc)
-# Mac: brew services start mysql
-# Linux: sudo systemctl start mysql
-
-# Access MySQL
-mysql -u root -p
-
-# Backup database
-mysqldump -u root -p dmiher_complaints > backup.sql
-
-# Restore database
-mysql -u root -p dmiher_complaints < backup.sql
-```
-
-## 📋 Copy-Paste Commands
-
-### Setup Git Repository
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: DMIHER Complaint Portal with MySQL"
-```
-
-### Connect to GitHub
-**⚠️ Replace YOUR_USERNAME with your actual GitHub username!**
-
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/dmiher-complaint-portal.git
-git branch -M main
-git push -u origin main
 ```
 
 ### Install Dependencies
-
 ```bash
 npm install
 ```
 
-### Start Server
-
+### Install New Package
 ```bash
-npm start
+npm install package-name
 ```
 
-### Check Git Status
+## Git Commands
 
+### Initialize Repository
+```bash
+git init
+```
+
+### Check Status
 ```bash
 git status
 ```
 
-### Save and Push Changes
-
+### Add Files
 ```bash
 git add .
-git commit -m "Your message here"
-git push
 ```
 
-## 🔧 Troubleshooting Commands
-
-### Check Git Version
-
+### Commit Changes
 ```bash
-git --version
+git commit -m "Your message"
+```
+
+### Push to GitHub
+```bash
+git push origin main
+```
+
+### Pull Latest Changes
+```bash
+git pull origin main
+```
+
+### View Commit History
+```bash
+git log
+```
+
+### Create New Branch
+```bash
+git checkout -b feature-name
+```
+
+### Switch Branch
+```bash
+git checkout main
+```
+
+## MongoDB Commands
+
+### Connect to MongoDB (if using local)
+```bash
+mongosh "mongodb+srv://cluster1.axcxah4.mongodb.net/dmiher_complaints" --username anuraghingwe001
+```
+
+### View Collections
+```javascript
+show collections
+```
+
+### View Students
+```javascript
+db.students.find().pretty()
+```
+
+### View Complaints
+```javascript
+db.complaints.find().pretty()
+```
+
+### Count Documents
+```javascript
+db.students.countDocuments()
+```
+
+## Server Management
+
+### Check Port Usage (Windows)
+```bash
+netstat -ano | findstr :3000
+```
+
+### Kill Process on Port (Windows)
+```bash
+taskkill /F /PID <process_id>
 ```
 
 ### Check Node Version
-
 ```bash
 node --version
+```
+
+### Check npm Version
+```bash
 npm --version
 ```
 
-### Check MySQL Status
+## Testing
 
+### Test API Endpoints (using curl)
+
+#### Test Login
 ```bash
-# Windows
-services.msc
-# Look for MySQL service
-
-# Mac
-brew services list
-
-# Linux
-sudo systemctl status mysql
+curl -X POST http://localhost:3000/api/login -H "Content-Type: application/json" -d "{\"email\":\"sc2023sa00001@dmiher.edu.in\",\"password\":\"bca123\"}"
 ```
 
-### Fix Git Not Recognized (Windows)
-
+#### Test Registration
 ```bash
-# Check where Git is installed
-where git
-
-# If not found, add to PATH:
-# C:\Program Files\Git\cmd
+curl -X POST http://localhost:3000/api/student/register -H "Content-Type: application/json" -d "{\"name\":\"Test User\",\"email\":\"test@dmiher.edu.in\",\"password\":\"test123\",\"phone\":\"1234567890\",\"course\":\"bca\"}"
 ```
 
-### Reset Git Remote
-
+#### Get All Complaints
 ```bash
-git remote -v
-git remote remove origin
-git remote add origin https://github.com/YOUR_USERNAME/repo.git
+curl http://localhost:3000/api/complaints
 ```
 
-### View Logs
+## Package Management
 
+### Update All Packages
 ```bash
-# View commit history
-git log
-
-# View recent commits
-git log --oneline -5
-
-# View file changes
-git diff
-```
-
-## 🌐 URLs
-
-### Local Development
-- Student Portal: http://localhost:3000
-- Faculty Portal: http://localhost:3000/faculty
-
-### GitHub
-- Create Repo: https://github.com/new
-- Your Repos: https://github.com/YOUR_USERNAME?tab=repositories
-
-### Deployment Platforms
-- Railway: https://railway.app
-- Render: https://render.com
-- Heroku: https://heroku.com
-
-## 🔑 Default Credentials
-
-### Students
-- BCA: BCA2023001 / bca123
-- BBA: BBA2023001 / bba123
-- MCA: MCA2023001 / mca123
-- BSc AIDS: BSCAIDS2023001 / aids123
-
-### Faculty
-- Password: admin123
-
-**⚠️ Change these in production!**
-
-## 📦 NPM Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Start server
-npm start
-
-# Check for vulnerabilities
-npm audit
-
-# Fix vulnerabilities
-npm audit fix
-
-# Update packages
 npm update
-
-# List installed packages
-npm list --depth=0
 ```
 
-## 🗄️ MySQL Commands
-
-```sql
--- Show databases
-SHOW DATABASES;
-
--- Use database
-USE dmiher_complaints;
-
--- Show tables
-SHOW TABLES;
-
--- View students
-SELECT * FROM students;
-
--- View complaints
-SELECT * FROM complaints;
-
--- Count records
-SELECT COUNT(*) FROM complaints;
-
--- Delete all complaints (careful!)
-DELETE FROM complaints;
-
--- Drop database (careful!)
-DROP DATABASE dmiher_complaints;
-
--- Create database
-CREATE DATABASE dmiher_complaints;
-```
-
-## 🔄 Git Workflow
-
+### Check for Outdated Packages
 ```bash
-# 1. Check status
-git status
-
-# 2. Pull latest changes
-git pull
-
-# 3. Make your changes in code editor
-
-# 4. Check what changed
-git status
-git diff
-
-# 5. Stage changes
-git add .
-
-# 6. Commit changes
-git commit -m "Description of changes"
-
-# 7. Push to GitHub
-git push
+npm outdated
 ```
 
-## 🌿 Branch Commands
-
+### Remove Package
 ```bash
-# Create new branch
-git checkout -b feature-name
-
-# Switch branches
-git checkout main
-
-# List branches
-git branch
-
-# Merge branch
-git checkout main
-git merge feature-name
-
-# Delete branch
-git branch -d feature-name
-
-# Push branch to GitHub
-git push -u origin feature-name
+npm uninstall package-name
 ```
 
-## 🚨 Emergency Commands
-
-### Undo Last Commit (Keep Changes)
-
+### Clear npm Cache
 ```bash
-git reset --soft HEAD~1
+npm cache clean --force
 ```
 
-### Undo Last Commit (Discard Changes)
+## Environment
 
+### View Environment Variables (Windows)
 ```bash
-git reset --hard HEAD~1
+echo %NODE_ENV%
 ```
 
-### Discard All Local Changes
-
+### Set Environment Variable (Windows CMD)
 ```bash
-git reset --hard HEAD
+set NODE_ENV=production
 ```
 
-### Remove File from Git (Keep Locally)
-
+### Set Environment Variable (Windows PowerShell)
 ```bash
-git rm --cached filename
+$env:NODE_ENV="production"
 ```
 
-### Fix Merge Conflicts
+## Deployment
 
+### Deploy to Heroku
 ```bash
-git pull
-# Fix conflicts in files
-git add .
-git commit -m "Resolve merge conflicts"
-git push
+git push heroku main
 ```
 
-## 📱 Railway Deployment
-
+### View Heroku Logs
 ```bash
-# 1. Push to GitHub first
-git push
-
-# 2. Go to Railway
-# https://railway.app
-
-# 3. New Project → Deploy from GitHub
-
-# 4. Select your repository
-
-# 5. Add MySQL database
-
-# 6. Done! Your app is live
+heroku logs --tail
 ```
 
-## 🎯 Quick Test
-
+### Restart Heroku App
 ```bash
-# 1. Start server
-npm start
-
-# 2. Open browser
-# http://localhost:3000
-
-# 3. Login as student
-# ID: BCA2023001
-# Password: bca123
-
-# 4. Submit test complaint
-
-# 5. Open faculty portal
-# http://localhost:3000/faculty
-# Password: admin123
-
-# 6. View and respond to complaint
+heroku restart
 ```
 
-## 📝 Notes
+## Troubleshooting
 
-- Always `git pull` before making changes
-- Commit often with clear messages
-- Test locally before pushing
-- Never commit .env file
-- Backup database regularly
+### Clear Node Modules and Reinstall
+```bash
+rmdir /s /q node_modules
+del package-lock.json
+npm install
+```
 
----
+### Check for Syntax Errors
+```bash
+node --check server.js
+```
 
-**Need more help?**
-- Git: See GIT_SETUP.md
-- Database: See DATABASE_SETUP.md
-- Deployment: See DEPLOYMENT.md
+### Run in Debug Mode
+```bash
+node --inspect server.js
+```
+
+## Quick Fixes
+
+### Port Already in Use
+```bash
+# Find process
+netstat -ano | findstr :3000
+
+# Kill process (replace PID)
+taskkill /F /PID <PID>
+```
+
+### MongoDB Connection Issues
+1. Check `.env` file for correct connection string
+2. Verify MongoDB Atlas IP whitelist
+3. Test connection string in MongoDB Compass
+
+### Server Won't Start
+1. Check for syntax errors: `node --check server.js`
+2. Verify all dependencies: `npm install`
+3. Check environment variables in `.env`
+4. Review server logs for error messages

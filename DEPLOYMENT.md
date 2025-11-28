@@ -1,382 +1,215 @@
-# Deployment Guide - MySQL Version
+# Deployment Guide
 
-## Environment Setup
+Deploy your DMIHER Complaint Portal to production.
 
-1. **Copy the environment template:**
-   ```bash
-   copy .env.example .env
-   ```
+## Prerequisites
 
-2. **Configure your environment variables in `.env`:**
-   - `PORT`: Server port (default: 3000)
-   - `FACULTY_PASSWORD`: Password for faculty login
-   - `NODE_ENV`: Set to `production` for deployment
-   - `DB_HOST`: MySQL server host
-   - `DB_USER`: MySQL username
-   - `DB_PASSWORD`: MySQL password
-   - `DB_NAME`: Database name (dmiher_complaints)
+- GitHub account
+- MongoDB Atlas account (already configured)
+- Deployment platform account (Render, Railway, or Heroku)
 
-## Local Development
+## Option 1: Deploy to Render (Recommended)
 
-### Prerequisites
-- Node.js (v14 or higher)
-- MySQL Server (v5.7 or higher)
-
-### Setup Steps
-
-1. **Install MySQL** (if not already installed)
-   - Windows: Download from https://dev.mysql.com/downloads/installer/
-   - Mac: `brew install mysql`
-   - Linux: `sudo apt install mysql-server`
-
-2. **Create Database**
-   ```bash
-   mysql -u root -p
-   ```
-   ```sql
-   CREATE DATABASE dmiher_complaints;
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-4. **Configure `.env` file:**
-   ```env
-   DB_HOST=localhost
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
-   DB_NAME=dmiher_complaints
-   FACULTY_PASSWORD=admin123
-   ```
-
-5. **Start the server:**
-   ```bash
-   npm start
-   ```
-   The application will automatically create tables and insert default data.
-
-6. **Access the application:**
-   - Student Portal: http://localhost:3000/
-   - Faculty Portal: http://localhost:3000/faculty
-
-## Production Deployment
-
-### Option 1: Railway (Recommended - Free MySQL Included)
-
-**Why Railway?**
-- Free MySQL database (500MB)
-- Easy deployment from GitHub
-- Automatic HTTPS
-- No credit card required
-
-**Steps:**
-
-1. **Create Railway Account**: https://railway.app
-
-2. **Create New Project**:
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Connect your repository
-
-3. **Add MySQL Database**:
-   - In your project, click "New"
-   - Select "Database" → "Add MySQL"
-   - Railway will automatically create the database
-
-4. **Configure Environment Variables**:
-   - Go to your web service
-   - Click "Variables"
-   - Add these variables (Railway will auto-fill MySQL variables):
-     ```
-     FACULTY_PASSWORD=your_secure_password
-     NODE_ENV=production
-     ```
-   - MySQL variables are automatically set by Railway
-
-5. **Deploy**:
-   - Railway automatically deploys on git push
-   - Your app will be live at: `your-app.railway.app`
-
-### Option 2: Render (Free Tier Available)
-
-1. **Create Render Account**: https://render.com
-
-2. **Create MySQL Database**:
-   - Dashboard → New → MySQL
-   - Select free tier
-   - Note the connection details
-
-3. **Create Web Service**:
-   - New → Web Service
-   - Connect your GitHub repository
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-
-4. **Add Environment Variables**:
-   ```
-   DB_HOST=<from Render MySQL>
-   DB_USER=<from Render MySQL>
-   DB_PASSWORD=<from Render MySQL>
-   DB_NAME=<from Render MySQL>
-   FACULTY_PASSWORD=your_secure_password
-   NODE_ENV=production
-   ```
-
-5. **Deploy**: Render will build and deploy automatically
-
-### Option 3: Heroku with ClearDB MySQL
-
-1. **Create Heroku App**:
-   ```bash
-   heroku create your-app-name
-   ```
-
-2. **Add ClearDB MySQL Add-on**:
-   ```bash
-   heroku addons:create cleardb:ignite
-   ```
-
-3. **Get Database Credentials**:
-   ```bash
-   heroku config:get CLEARDB_DATABASE_URL
-   ```
-   Format: `mysql://username:password@host/database`
-
-4. **Set Environment Variables**:
-   ```bash
-   heroku config:set DB_HOST=<host-from-cleardb>
-   heroku config:set DB_USER=<user-from-cleardb>
-   heroku config:set DB_PASSWORD=<password-from-cleardb>
-   heroku config:set DB_NAME=<database-from-cleardb>
-   heroku config:set FACULTY_PASSWORD=your_secure_password
-   heroku config:set NODE_ENV=production
-   ```
-
-5. **Deploy**:
-   ```bash
-   git push heroku main
-   ```
-
-### Option 4: DigitalOcean App Platform
-
-1. **Create DigitalOcean Account**: https://digitalocean.com
-
-2. **Create Managed MySQL Database**:
-   - Databases → Create Database Cluster
-   - Select MySQL
-   - Choose plan (starts at $15/month)
-
-3. **Create App**:
-   - Apps → Create App
-   - Connect GitHub repository
-   - Add environment variables from MySQL cluster
-
-4. **Deploy**: DigitalOcean will handle deployment
-
-### Option 5: AWS (EC2 + RDS)
-
-1. **Create RDS MySQL Instance**:
-   - AWS Console → RDS → Create Database
-   - Select MySQL
-   - Choose Free Tier eligible
-   - Note endpoint and credentials
-
-2. **Create EC2 Instance**:
-   - Launch Ubuntu 22.04 instance
-   - Install Node.js:
-     ```bash
-     curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-     sudo apt-get install -y nodejs
-     ```
-
-3. **Deploy Application**:
-   ```bash
-   git clone your-repo-url
-   cd your-repo
-   npm install --production
-   
-   # Create .env file
-   nano .env
-   # Add your RDS connection details
-   
-   # Use PM2 for process management
-   sudo npm install -g pm2
-   pm2 start server.js --name "complaint-portal"
-   pm2 startup
-   pm2 save
-   ```
-
-### Option 6: VPS (Ubuntu/Debian) with MySQL
+### Step 1: Push to GitHub
 
 ```bash
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install MySQL
-sudo apt update
-sudo apt install mysql-server
-
-# Secure MySQL
-sudo mysql_secure_installation
-
-# Create database
-sudo mysql
-CREATE DATABASE dmiher_complaints;
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'strong_password';
-GRANT ALL PRIVILEGES ON dmiher_complaints.* TO 'appuser'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-
-# Clone and setup application
-git clone your-repo-url
-cd your-repo
-npm install --production
-
-# Configure environment
-nano .env
-# Add database credentials
-
-# Use PM2
-sudo npm install -g pm2
-pm2 start server.js --name "complaint-portal"
-pm2 startup
-pm2 save
-
-# Setup Nginx (optional)
-sudo apt install nginx
-# Configure reverse proxy
+git add .
+git commit -m "Ready for deployment with MongoDB"
+git push origin main
 ```
 
-## Free MySQL Hosting Options
+### Step 2: Create Render Account
 
-1. **Railway** - 500MB free, best for small projects
-2. **PlanetScale** - 5GB free, serverless MySQL
-3. **Aiven** - Free trial with 1GB
-4. **Clever Cloud** - Free tier available
-5. **FreeSQLDatabase** - 5MB free (testing only)
+1. Go to https://render.com
+2. Sign up with GitHub
+3. Click "New +" → "Web Service"
 
-## Database Schema
+### Step 3: Configure Service
 
-The application automatically creates these tables:
+1. Connect your GitHub repository
+2. Configure settings:
+   - **Name**: dmiher-complaint-portal
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
 
-### Students Table
-- `id` (VARCHAR 50, PRIMARY KEY)
-- `password` (VARCHAR 255)
-- `name` (VARCHAR 100)
-- `dept` (VARCHAR 50)
-- `email` (VARCHAR 100, UNIQUE)
-- `phone` (VARCHAR 20)
-- `year` (VARCHAR 20)
-- `course` (VARCHAR 50)
-- `registration_date` (TIMESTAMP)
+### Step 4: Add Environment Variables
 
-### Complaints Table
-- `id` (VARCHAR 50, PRIMARY KEY)
-- `student_id` (VARCHAR 50, FOREIGN KEY)
-- `student_name` (VARCHAR 100)
-- `student_email` (VARCHAR 100)
-- `department` (VARCHAR 50)
-- `year` (VARCHAR 20)
-- `complaint_type` (VARCHAR 50)
-- `subject` (VARCHAR 200)
-- `description` (TEXT)
-- `status` (VARCHAR 20)
-- `faculty_response` (TEXT)
-- `created_at` (TIMESTAMP)
-- `responded_at` (TIMESTAMP)
+Add these in Render dashboard:
 
-## Environment Variables Reference
+```
+MONGODB_URI=mongodb+srv://anuraghingwe001:anuraghingwe%40001@cluster1.axcxah4.mongodb.net/dmiher_complaints?retryWrites=true&w=majority
+FACULTY_PASSWORD=admin123
+NODE_ENV=production
+PORT=3000
+```
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| PORT | Server port | 3000 | No |
-| FACULTY_PASSWORD | Faculty login password | admin123 | Yes |
-| NODE_ENV | Environment mode | development | No |
-| DB_HOST | MySQL server host | localhost | Yes |
-| DB_USER | MySQL username | root | Yes |
-| DB_PASSWORD | MySQL password | - | Yes |
-| DB_NAME | Database name | dmiher_complaints | Yes |
-| ALLOWED_ORIGINS | CORS allowed origins | * | No |
+### Step 5: Deploy
 
-## Security Considerations
+Click "Create Web Service" and wait for deployment to complete!
 
-1. **Change default passwords** in production
-2. **Use HTTPS** in production (automatic on Railway/Render)
-3. **Set strong `FACULTY_PASSWORD`**
-4. **Use strong MySQL password**
-5. **Configure CORS** for your domain
-6. **Keep dependencies updated**: `npm audit fix`
-7. **Backup database regularly**
-8. **Use environment variables** - never hardcode credentials
-9. **Enable MySQL SSL** in production
-10. **Limit database user privileges**
+## Option 2: Deploy to Railway
 
-## Backup and Restore
+### Step 1: Create Railway Account
 
-### Backup Database
+1. Go to https://railway.app
+2. Sign up with GitHub
+
+### Step 2: Create New Project
+
+1. Click "New Project"
+2. Select "Deploy from GitHub repo"
+3. Choose your repository
+
+### Step 3: Add Environment Variables
+
+In Railway dashboard, add:
+
+```
+MONGODB_URI=mongodb+srv://anuraghingwe001:anuraghingwe%40001@cluster1.axcxah4.mongodb.net/dmiher_complaints?retryWrites=true&w=majority
+FACULTY_PASSWORD=admin123
+NODE_ENV=production
+```
+
+### Step 4: Deploy
+
+Railway will automatically deploy your app!
+
+## Option 3: Deploy to Heroku
+
+### Step 1: Install Heroku CLI
+
 ```bash
-mysqldump -u root -p dmiher_complaints > backup.sql
+npm install -g heroku
 ```
 
-### Restore Database
+### Step 2: Login to Heroku
+
 ```bash
-mysql -u root -p dmiher_complaints < backup.sql
+heroku login
 ```
 
-### Automated Backups (Railway)
-Railway automatically backs up your database. You can restore from the dashboard.
+### Step 3: Create Heroku App
 
-## Troubleshooting
+```bash
+heroku create dmiher-complaint-portal
+```
 
-### Database Connection Failed
-- Verify MySQL is running: `sudo systemctl status mysql`
-- Check credentials in `.env`
-- Ensure database exists: `SHOW DATABASES;`
-- Check firewall settings
+### Step 4: Set Environment Variables
 
-### Port Already in Use
-Change the PORT in `.env` file
+```bash
+heroku config:set MONGODB_URI="mongodb+srv://anuraghingwe001:anuraghingwe%40001@cluster1.axcxah4.mongodb.net/dmiher_complaints?retryWrites=true&w=majority"
+heroku config:set FACULTY_PASSWORD="admin123"
+heroku config:set NODE_ENV="production"
+```
 
-### CORS Errors
-Add your frontend domain to `ALLOWED_ORIGINS` in `.env`
+### Step 5: Deploy
 
-### Tables Not Created
-Check server logs. The app auto-creates tables on first run.
+```bash
+git push heroku main
+```
 
-### Migration from JSON Files
-See `DATABASE_SETUP.md` for migration script
+## MongoDB Atlas Configuration
 
-## Performance Tips
+### Whitelist IP Addresses
 
-1. **Connection Pooling** - Already implemented (10 connections)
-2. **Indexes** - Already added on frequently queried columns
-3. **Query Optimization** - Use EXPLAIN for slow queries
-4. **Caching** - Consider Redis for session management
-5. **CDN** - Use CDN for static assets in production
+1. Go to MongoDB Atlas dashboard
+2. Navigate to Network Access
+3. Click "Add IP Address"
+4. Select "Allow Access from Anywhere" (0.0.0.0/0) for production
+5. Click "Confirm"
+
+### Database User
+
+Make sure your database user has read/write permissions:
+1. Go to Database Access
+2. Verify user `anuraghingwe001` has "Atlas Admin" or "Read and write to any database" role
+
+## Post-Deployment
+
+### Test Your Deployment
+
+1. Visit your deployed URL
+2. Test registration with a new account
+3. Test login with default accounts
+4. Submit a test complaint
+5. Login as faculty and respond to complaint
+
+### Update Environment Variables
+
+For production, consider:
+- Changing `FACULTY_PASSWORD` to a strong password
+- Setting up custom domain
+- Enabling HTTPS (usually automatic on Render/Railway/Heroku)
 
 ## Monitoring
 
-### Railway
-- Built-in metrics dashboard
-- View logs in real-time
-- Resource usage monitoring
+### Check Logs
 
-### PM2 (VPS)
-```bash
-pm2 monit              # Real-time monitoring
-pm2 logs               # View logs
-pm2 restart all        # Restart app
+**Render:**
 ```
+View logs in Render dashboard → Logs tab
+```
+
+**Railway:**
+```
+View logs in Railway dashboard → Deployments → View Logs
+```
+
+**Heroku:**
+```bash
+heroku logs --tail
+```
+
+## Troubleshooting
+
+### Deployment fails?
+- Check build logs for errors
+- Verify all environment variables are set
+- Ensure package.json has correct start script
+
+### Can't connect to MongoDB?
+- Verify MongoDB Atlas IP whitelist includes 0.0.0.0/0
+- Check connection string is correct
+- Ensure password is URL-encoded (%40 for @)
+
+### App crashes on startup?
+- Check logs for error messages
+- Verify PORT environment variable
+- Ensure all dependencies are in package.json
+
+## Security Recommendations
+
+1. **Change default passwords** in production
+2. **Use strong faculty password**
+3. **Enable MongoDB Atlas IP whitelist** for specific IPs if possible
+4. **Set up monitoring** and alerts
+5. **Regular backups** of MongoDB database
+6. **Use environment variables** for all sensitive data
+
+## Custom Domain (Optional)
+
+### Render
+1. Go to Settings → Custom Domain
+2. Add your domain
+3. Update DNS records as instructed
+
+### Railway
+1. Go to Settings → Domains
+2. Add custom domain
+3. Update DNS records
+
+### Heroku
+1. Go to Settings → Domains
+2. Add custom domain
+3. Update DNS records
 
 ## Support
 
-For detailed database setup instructions, see `DATABASE_SETUP.md`
+If you encounter issues:
+1. Check deployment platform documentation
+2. Review MongoDB Atlas connection settings
+3. Verify environment variables are correct
+4. Check application logs for errors
 
-For issues:
-1. Check server logs
-2. Verify environment variables
-3. Test database connection
-4. Check MySQL error logs
+Happy deploying! 🚀
