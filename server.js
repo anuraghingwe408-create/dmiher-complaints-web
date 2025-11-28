@@ -222,6 +222,14 @@ app.post('/api/student/register', async (req, res) => {
     try {
         const { name, course, email, password, phone } = req.body;
 
+        // Validate required fields
+        if (!name || !course || !email || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'All fields are required (name, course, email, password)' 
+            });
+        }
+
         // Validate DMIHER email format
         if (!isValidDMIHEREmail(email)) {
             return res.status(400).json({ 
@@ -279,7 +287,10 @@ app.post('/api/student/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Error registering student:', error);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ 
+            success: false,
+            error: error.message || 'Registration failed. Please try again.' 
+        });
     }
 });
 
