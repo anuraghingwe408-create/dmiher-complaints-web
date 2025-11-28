@@ -317,19 +317,27 @@ async function startServer() {
             await initializeDatabase();
         }
 
-        // Start server
-        app.listen(PORT, () => {
-            console.log('🚀 DMIHER Complaint Portal Server Started!');
-            console.log(`📍 Server running on: http://localhost:${PORT}`);
-            console.log(`📚 Student Portal: http://localhost:${PORT}/`);
-            console.log(`👨‍🏫 Faculty Portal: http://localhost:${PORT}/faculty`);
-            console.log(`🔑 Faculty Password: ${process.env.FACULTY_PASSWORD || 'admin123'}`);
-            console.log('✅ MongoDB Database connected');
-        });
+        // Start server only if not in Vercel environment
+        if (process.env.VERCEL !== '1') {
+            app.listen(PORT, () => {
+                console.log('🚀 DMIHER Complaint Portal Server Started!');
+                console.log(`📍 Server running on: http://localhost:${PORT}`);
+                console.log(`📚 Student Portal: http://localhost:${PORT}/`);
+                console.log(`👨‍🏫 Faculty Portal: http://localhost:${PORT}/faculty`);
+                console.log(`🔑 Faculty Password: ${process.env.FACULTY_PASSWORD || 'admin123'}`);
+                console.log('✅ MongoDB Database connected');
+            });
+        }
     } catch (error) {
         console.error('Failed to start server:', error);
-        process.exit(1);
+        if (process.env.VERCEL !== '1') {
+            process.exit(1);
+        }
     }
 }
 
+// Initialize database
 startServer();
+
+// Export for Vercel
+module.exports = app;
