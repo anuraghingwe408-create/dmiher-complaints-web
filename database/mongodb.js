@@ -49,7 +49,14 @@ const complaintSchema = new mongoose.Schema({
     status: { type: String, default: 'Pending' },
     faculty_response: String,
     created_at: { type: Date, default: Date.now },
-    responded_at: Date
+    responded_at: Date,
+    attachment: {
+        filename: { type: String },
+        mimetype: { type: String },
+        data: { type: String },
+        size: { type: Number },
+        uploadedAt: { type: Date, default: Date.now }
+    }
 });
 
 // Create Models

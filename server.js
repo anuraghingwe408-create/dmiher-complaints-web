@@ -13,6 +13,33 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
+// File validation function
+function validateAttachment(attachment) {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!allowedTypes.includes(attachment.mimetype)) {
+        throw new Error('Invalid file type. Only PNG, JPG, JPEG, and PDF files are allowed.');
+    }
+    
+    if (attachment.size > maxSize) {
+        throw new Error('File size exceeds 5MB limit.');
+    }
+    
+    // Validate Base64 format
+    if (!attachment.data || typeof attachment.data !== 'string') {
+        throw new Error('Invalid file data.');
+    }
+    
+    // Basic Base64 validation
+    const base64Pattern = /^[A-Za-z0-9+/]+={0,2}$/;
+    if (!base64Pattern.test(attachment.data)) {
+        throw new Error('Invalid Base64 format.');
+    }
+    
+    return true;
+}
+
 // Routes
 
 // Serve landing page as default
@@ -49,24 +76,42 @@ app.get('/api/complaints', async (req, res) => {
 // Add new complaint
 app.post('/api/complaints', async (req, res) => {
     try {
+        const { attachment, ...complaintData } = req.body;
+        
+        // Validate attachment if present
+        if (attachment) {
+            try {
+                validateAttachment(attachment);
+            } catch (validationError) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: validationError.message 
+                });
+            }
+        }
+        
         const newComplaint = {
             id: 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5).toUpperCase(),
-            student_id: req.body.studentId,
-            student_name: req.body.studentName,
-            student_email: req.body.studentEmail,
-            department: req.body.department,
-            year: req.body.year,
-            complaint_type: req.body.complaintType,
-            subject: req.body.subject,
-            description: req.body.description,
-            status: 'Pending'
+            student_id: complaintData.studentId,
+            student_name: complaintData.studentName,
+            student_email: complaintData.studentEmail,
+            department: complaintData.department,
+            year: complaintData.year,
+            complaint_type: complaintData.complaintType,
+            subject: complaintData.subject,
+            description: complaintData.description,
+            status: 'Pending',
+            attachment: attachment || null
         };
 
         const complaint = await Complaint.create(newComplaint);
         res.json({ success: true, complaint });
     } catch (error) {
         console.error('Error saving complaint:', error);
-        res.status(500).json({ error: 'Failed to save complaint' });
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to save complaint' 
+        });
     }
 });
 

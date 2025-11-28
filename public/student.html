@@ -221,6 +221,67 @@
       window.location.href = 'login.html';
     }
     
+    // File attachment handling
+    let selectedFile = null;
+    
+    document.getElementById('attachment').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const previewArea = document.getElementById('previewArea');
+      
+      if (!file) {
+        previewArea.innerHTML = '';
+        selectedFile = null;
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('❌ Invalid file type. Only PNG, JPG, JPEG, and PDF files are allowed.');
+        e.target.value = '';
+        previewArea.innerHTML = '';
+        selectedFile = null;
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert('❌ File size must be under 5MB.');
+        e.target.value = '';
+        previewArea.innerHTML = '';
+        selectedFile = null;
+        return;
+      }
+      
+      // Store file reference
+      selectedFile = file;
+      
+      // Generate preview
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          previewArea.innerHTML = `
+            <div style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+              <p style="margin-bottom: 8px; color: #0369a1; font-weight: 500;">📎 File attached: ${file.name}</p>
+              <img src="${event.target.result}" style="max-width: 200px; max-height: 150px; border-radius: 4px; border: 1px solid #ddd;" />
+            </div>
+          `;
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/pdf') {
+        previewArea.innerHTML = `
+          <div style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+            <p style="margin-bottom: 8px; color: #0369a1; font-weight: 500;">📎 File attached: ${file.name}</p>
+            <div style="padding: 20px; background: white; border-radius: 4px; text-align: center; border: 1px solid #ddd;">
+              <span style="font-size: 48px;">📄</span>
+              <p style="margin-top: 8px; color: #6b7280;">${file.name}</p>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
     // Populate form with user data
     document.getElementById('name').value = user.name || '';
     document.getElementById('email').value = user.email || '';
@@ -249,6 +310,22 @@
         description: document.getElementById('message').value
       };
       
+      // Handle file attachment if present
+      if (selectedFile) {
+        try {
+          const fileData = await readFileAsBase64(selectedFile);
+          formData.attachment = {
+            filename: selectedFile.name,
+            mimetype: selectedFile.type,
+            data: fileData,
+            size: selectedFile.size
+          };
+        } catch (error) {
+          alert('❌ Failed to read file. Please try again.');
+          return;
+        }
+      }
+      
       try {
         const response = await fetch('/api/complaints', {
           method: 'POST',
@@ -264,6 +341,9 @@
           alert('✅ Complaint submitted successfully! Complaint ID: ' + data.complaint.id);
           document.getElementById('message').value = '';
           document.getElementById('complaintCategory').value = '';
+          document.getElementById('attachment').value = '';
+          document.getElementById('previewArea').innerHTML = '';
+          selectedFile = null;
         } else {
           alert('❌ Failed to submit complaint: ' + (data.error || 'Unknown error'));
         }
@@ -272,6 +352,22 @@
         alert('❌ Error submitting complaint. Please try again.');
       }
     });
+    
+    // Helper function to read file as Base64
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          // Extract Base64 data (remove data URL prefix)
+          const base64 = event.target.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = function(error) {
+          reject(error);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
     
     // Download complaint receipt as PDF
     function downloadComplaintReceipt(complaint) {
@@ -318,6 +414,15 @@
       const splitMessage = doc.splitTextToSize(complaint.description || 'No details provided', 170);
       doc.text(splitMessage, 20, yPosition);
       yPosition += (splitMessage.length * 6) + 15;
+      
+      // Attachment info
+      if (complaint.attachment && complaint.attachment.filename) {
+        doc.setFontSize(11);
+        doc.setTextColor(5, 150, 105);
+        doc.text('📎 Attachment: ' + complaint.attachment.filename, 20, yPosition);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 15;
+      }
       
       // Faculty response section
       if (complaint.faculty_response) {
@@ -366,16 +471,44 @@
           let responseHTML = '';
           repliedComplaints.forEach(complaint => {
             const complaintJson = JSON.stringify(complaint).replace(/"/g, '&quot;');
+            
+            // Generate attachment preview HTML
+            let attachmentHTML = '';
+            if (complaint.attachment && complaint.attachment.data) {
+              const att = complaint.attachment;
+              if (att.mimetype.startsWith('image/')) {
+                attachmentHTML = `
+                  <div style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 6px; border: 1px solid #bae6fd;">
+                    <p style="margin-bottom: 6px; color: #0369a1; font-size: 13px; font-weight: 500;">📎 Your Attachment: ${att.filename}</p>
+                    <img src="data:${att.mimetype};base64,${att.data}" style="max-width: 150px; max-height: 100px; border-radius: 4px; border: 1px solid #ddd;" />
+                  </div>
+                `;
+              } else if (att.mimetype === 'application/pdf') {
+                attachmentHTML = `
+                  <div style="margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 6px; border: 1px solid #bae6fd;">
+                    <p style="margin-bottom: 6px; color: #0369a1; font-size: 13px; font-weight: 500;">📎 Your Attachment: ${att.filename}</p>
+                    <div style="padding: 15px; background: white; border-radius: 4px; text-align: center; border: 1px solid #ddd;">
+                      <span style="font-size: 32px;">📄</span>
+                      <p style="margin-top: 4px; color: #6b7280; font-size: 12px;">${att.filename}</p>
+                    </div>
+                  </div>
+                `;
+              }
+            }
+            
+            const attachmentIndicator = complaint.attachment ? ' 📎' : '';
+            
             responseHTML += `
               <div style="margin-bottom: 16px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #dcfce7;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                  <strong style="color: #059669;">Complaint ID: ${complaint.id}</strong>
+                  <strong style="color: #059669;">Complaint ID: ${complaint.id}${attachmentIndicator}</strong>
                   <span style="font-size: 12px; color: #6b7280;">${new Date(complaint.created_at).toLocaleDateString()}</span>
                 </div>
                 <div style="margin-bottom: 8px;">
                   <strong>Category:</strong> ${complaint.complaint_type}<br>
                   <strong>Your Complaint:</strong> ${complaint.description}
                 </div>
+                ${attachmentHTML}
                 <div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #10b981;">
                   <strong>Faculty Response:</strong> ${complaint.faculty_response}
                 </div>

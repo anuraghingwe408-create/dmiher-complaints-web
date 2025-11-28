@@ -199,6 +199,35 @@
         }
     }
 
+    // Download attachment file
+    function downloadAttachment(attachment) {
+        try {
+            // Convert Base64 to Blob
+            const byteCharacters = atob(attachment.data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: attachment.mimetype });
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = attachment.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('✅ File downloaded:', attachment.filename);
+        } catch (error) {
+            console.error('Error downloading file:', error);
+            alert('❌ Error downloading file. Please try again.');
+        }
+    }
+
     // Download Complaint as PDF
     function downloadComplaintPDF(complaint) {
         const { jsPDF } = window.jspdf;
@@ -320,6 +349,39 @@
                 const textareaId = `reply-${complaint.id}`;
                 const statusId = `status-${complaint.id}`;
                 
+                // Generate attachment preview HTML
+                let attachmentHTML = '';
+                if (complaint.attachment && complaint.attachment.data) {
+                    const att = complaint.attachment;
+                    if (att.mimetype.startsWith('image/')) {
+                        attachmentHTML = `
+                            <div style="margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                                <p style="margin-bottom: 8px; color: #0369a1; font-weight: 500;">📎 Attached File: ${att.filename}</p>
+                                <img src="data:${att.mimetype};base64,${att.data}" class="complaint-image" alt="Attachment" />
+                                <br>
+                                <button class="download-btn" onclick='downloadAttachment(${JSON.stringify(att).replace(/'/g, "&apos;")})'>
+                                    📥 Download
+                                </button>
+                            </div>
+                        `;
+                    } else if (att.mimetype === 'application/pdf') {
+                        attachmentHTML = `
+                            <div style="margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                                <p style="margin-bottom: 8px; color: #0369a1; font-weight: 500;">📎 Attached File: ${att.filename}</p>
+                                <div style="padding: 20px; background: white; border-radius: 4px; text-align: center; border: 1px solid #ddd;">
+                                    <span style="font-size: 48px;">📄</span>
+                                    <p style="margin-top: 8px; color: #6b7280;">${att.filename}</p>
+                                </div>
+                                <button class="download-btn" onclick='downloadAttachment(${JSON.stringify(att).replace(/'/g, "&apos;")})'>
+                                    📥 Download
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+                
+                const attachmentIndicator = complaint.attachment ? ' 📎' : '';
+                
                 div.innerHTML = `
                     <div class="left">
                         <div class="student-info">
@@ -327,8 +389,9 @@
                             <small>Course: ${complaint.department?.toUpperCase() || 'N/A'} • ${complaint.student_id || 'N/A'}</small>
                         </div>
                         
-                        <h4>${complaint.complaint_type || 'General Complaint'}</h4>
+                        <h4>${complaint.complaint_type || 'General Complaint'}${attachmentIndicator}</h4>
                         <p>${complaint.description}</p>
+                        ${attachmentHTML}
                         <div class="meta">
                             Complaint ID: ${complaint.id} • 
                             ${new Date(complaint.created_at).toLocaleString()} • 
