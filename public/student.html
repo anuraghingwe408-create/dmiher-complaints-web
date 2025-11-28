@@ -7,19 +7,119 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    .response-section {
-      background: #f0fdf4;
-      padding: 16px;
-      border-radius: 8px;
-      border: 2px solid #bbf7d0;
-      margin-bottom: 20px;
+    /* Enhanced Animations */
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Improved Response Section */
+    .response-section {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid #bbf7d0;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      animation: slideIn 0.5s ease-out;
+    }
+    
     .response-item {
       background: white;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 8px;
       border-left: 4px solid #059669;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+    
+    .response-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    
+    /* Enhanced Form Styling */
+    .form-card {
+      animation: fadeIn 0.6s ease-out;
+    }
+    
+    .form input, .form select, .form textarea {
+      transition: all 0.3s ease;
+    }
+    
+    .form input:focus, .form select:focus, .form textarea:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+    
+    /* Success/Error Messages */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease-out;
+      z-index: 1000;
+    }
+    
+    .toast.success { background: #059669; }
+    .toast.error { background: #ef4444; }
+    
+    /* Button Enhancements */
+    .btn {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
