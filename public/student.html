@@ -118,7 +118,7 @@
     
     if (!user || userType !== 'student') {
       // Not logged in or not a student, redirect to login
-      window.location.href = '/';
+      window.location.href = 'login.html';
     }
     
     // Populate form with user data
@@ -131,7 +131,7 @@
     document.getElementById('logoutBtn').addEventListener('click', function() {
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
-      window.location.href = '/login';
+      window.location.href = 'login.html';
     });
     
     // Handle complaint form submission
