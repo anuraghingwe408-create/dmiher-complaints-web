@@ -221,9 +221,10 @@
       const course = document.getElementById('regCourse').value;
       const messageDiv = document.getElementById('registrationMessage');
       
-      // Validate email domain only
-      if (!email.endsWith('@dmiher.edu.in')) {
-        messageDiv.textContent = 'Please use your official DMIHER email address (@dmiher.edu.in)';
+      // Validate email format: scXXXXsaXXXXX@dmiher.edu.in
+      const emailPattern = /^sc\d{4}sa\d{5}@dmiher\.edu\.in$/;
+      if (!emailPattern.test(email)) {
+        messageDiv.textContent = 'Invalid email format. Use: scXXXXsaXXXXX@dmiher.edu.in (e.g., sc2024sa00087@dmiher.edu.in)';
         messageDiv.style.color = '#ef4444';
         messageDiv.style.display = 'block';
         return;
@@ -268,7 +269,8 @@
           messageDiv.style.color = '#ef4444';
         }
       } catch (error) {
-        messageDiv.textContent = 'Registration failed. Please try again.';
+        console.error('Registration error:', error);
+        messageDiv.textContent = 'Registration failed. Please check your connection and try again.';
         messageDiv.style.color = '#ef4444';
       }
     });
