@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DMIHER Complaint Portal — Faculty</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    .reply-section {
+      margin-top: 15px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .reply-textarea {
+      width: 100%;
+      height: 80px;
+      margin: 10px 0;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .send-btn {
+      background: #007bff;
+      color: white;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .send-btn:hover {
+      background: #0056b3;
+    }
+    .response-display {
+      background: #e8f5e8;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      border-left: 4px solid #28a745;
+    }
+    .status-resolved {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .status-pending {
+      color: #f59e0b;
+      font-weight: bold;
+    }
+    .download-btn {
+      background: #10b981;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    .download-btn:hover {
+      background: #059669;
+    }
+    .tools {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .complaint-image {
+      max-width: 200px;
+      max-height: 150px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .student-info {
+      background: #f8f9fa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 8px 0;
+      border-left: 3px solid #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+  <header class="header container">
+    <div class="brand">
+      <div class="logo"></S></div>
+      <div class="brand-text">
+        <div class="title">SAS</div>
+        <div class="subtitle">Complaint System - Faculty</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-link" href="index.html">Student</a>
+      <a class="nav-link active" href="faculty.html">Faculty</a>
+    </nav>
+  </header>
+
+  <!-- Faculty Login Section -->
+  <section id="facultyLoginSection" class="container">
+    <div class="card form-card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+      <h2>Faculty Login</h2>
+      <p class="meta" style="margin-bottom: 20px;">Enter password to access faculty dashboard</p>
+      
+      <div class="login-row" style="justify-content: center;">
+        <input id="adminPass" placeholder="Enter password: admin123" type="password" style="flex: 1;" />
+        <button class="btn primary" id="loginBtn" type="button">Login</button>
+      </div>
+      
+      <div id="loginMessage" class="meta" style="margin-top: 12px; color: #ef4444; display: none;"></div>
+    </div>
+  </section>
+
+  <!-- Faculty Dashboard (Hidden until login) -->
+  <main id="facultyDashboard" class="container faculty-grid" style="display: none;">
+    <section class="card admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2>Faculty Dashboard</h2>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+        <button class="btn" onclick="debugComplaints()" style="margin-left: 10px; background: #f59e0b;">Debug</button>
+      </div>
+
+      <div id="adminArea">
+        <div class="tools">
+          <button class="btn" id="refreshBtn" type="button">Refresh</button>
+          <button class="btn" id="exportAll" type="button">Export (JSON)</button>
+          <button class="btn danger" id="clearAll" type="button">Clear All</button>
+        </div>
+        
+        <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
+          <strong>📊 Statistics</strong>
+          <div id="statsInfo" style="margin-top: 8px; font-size: 14px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card list-card full">
+      <h3>All Complaints</h3>
+      <div id="allList" class="list">
+        <!-- Complaints will be loaded here -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="year2"></span> DMIHER — Complaint Management System</footer>
+
+  <script>
+    document.getElementById('year2').textContent = new Date().getFullYear();
+    
+    // Faculty Response System
+    function sendFacultyResponse(complaintId, textareaId, statusId, responseDivId) {
+        const replyText = document.getElementById(textareaId).value;
+        
+        if (!replyText.trim()) {
+            alert('Please enter a response before sending.');
+            return;
+        }
+        
+        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
+        const updatedComplaints = complaints.map(complaint => {
+            if (complaint.id === complaintId) {
+                return {
+                    ...complaint,
+                    status: 'Resolved',
+                    facultyResponse: replyText,
+                    respondedAt: new Date().toISOString()
+                };
+            }
+            return complaint;
+        });
+        
+        localStorage.setItem('dmiher_complaints_final_v6', JSON.stringify(updatedComplaints));
+        document.getElementById(statusId).innerHTML = '<span class="status-resolved">Status: Resolved</span>';
+        
+        const responseDiv = document.getElementById(responseDivId);
+        responseDiv.innerHTML = `
+            <strong>Faculty Response:</strong><br>
+            ${replyText}<br>
+            <small><em>Responded on: ${new Date().toLocaleString()}</em></small>
+        `;
+        responseDiv.style.display = 'block';
+        document.getElementById(textareaId).value = '';
+        
+        alert(`Response sent successfully for Complaint ID: ${complaintId}`);
+        renderAllComplaints();
+    }
+
+    // Download Complaint as PDF
+    function downloadComplaintPDF(complaint) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        let yPosition = 20;
+        doc.setFontSize(16);
+        doc.text('Complaint Receipt - DMIHER', 20, yPosition);
+        yPosition += 15;
+        
+        doc.setFontSize(10);
+        doc.text(`Complaint ID: ${complaint.id}`, 20, yPosition);
+        yPosition += 7;
+        doc.text(`Student: ${complaint.name}`, 20, yPosition);
+        yPosition += 7;
+        doc.text(`Email: ${complaint.email}`, 20, yPosition);
+        yPosition += 7;
+        doc.text(`Course: ${complaint.course}`, 20, yPosition);
+        yPosition += 7;
+        doc.text(`Date: ${new Date(complaint.createdAt).toLocaleString()}`, 20, yPosition);
+        yPosition += 7;
+        doc.text(`Status: ${complaint.status}`, 20, yPosition);
+        yPosition += 12;
+        
+        doc.text('Complaint Details:', 20, yPosition);
+        yPosition += 7;
+        const splitMessage = doc.splitTextToSize(complaint.message, 170);
+        doc.text(splitMessage, 20, yPosition);
+        yPosition += (splitMessage.length * 5) + 10;
+        
+        if (complaint.attachment && complaint.attachment.data) {
+            try {
+                doc.text('Attached Image:', 20, yPosition);
+                yPosition += 7;
+                const imgData = complaint.attachment.data;
+                const imgProps = doc.getImageProperties(imgData);
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 20;
+                const maxWidth = pageWidth - (2 * margin);
+                const ratio = maxWidth / imgProps.width;
+                const width = imgProps.width * ratio;
+                const height = imgProps.height * ratio;
+                
+                if (yPosition + height > doc.internal.pageSize.getHeight() - 20) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                doc.addImage(imgData, 'JPEG', margin, yPosition, width, height);
+                yPosition += height + 10;
+            } catch (error) {
+                console.error('Error adding image to PDF:', error);
+                doc.text('[Image could not be added to PDF]', 20, yPosition);
+                yPosition += 10;
+            }
+        }
+        
+        if (complaint.facultyResponse) {
+            if (yPosition > 180) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            
+            doc.text('Faculty Response:', 20, yPosition);
+            yPosition += 7;
+            const splitResponse = doc.splitTextToSize(complaint.facultyResponse, 170);
+            doc.text(splitResponse, 20, yPosition);
+            yPosition += (splitResponse.length * 5) + 7;
+            doc.text(`Responded on: ${new Date(complaint.respondedAt).toLocaleString()}`, 20, yPosition);
+        }
+        
+        doc.save(`complaint-${complaint.id}.pdf`);
+    }
+
+    // Render Complaints
+    function renderAllComplaints() {
+        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
+        const allList = document.getElementById('allList');
+        const statsInfo = document.getElementById('statsInfo');
+        
+        if (!allList) return;
+        
+        allList.innerHTML = '';
+        
+        // Update statistics
+        const totalComplaints = complaints.length;
+        const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
+        const resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
+        
+        if (statsInfo) {
+            statsInfo.innerHTML = `
+                Total: ${totalComplaints} | 
+                Pending: ${pendingComplaints} | 
+                Resolved: ${resolvedComplaints}
+            `;
+        }
+        
+        if (complaints.length === 0) {
+            allList.innerHTML = '<p class="meta">No complaints available</p>';
+            return;
+        }
+        
+        complaints.reverse().forEach((complaint, index) => {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.style.padding = '15px';
+            div.style.marginBottom = '15px';
+            div.style.border = '1px solid #e5e7eb';
+            div.style.borderRadius = '8px';
+            div.style.background = '#f9fafb';
+            
+            const statusClass = complaint.status === 'Resolved' ? 'status-resolved' : 'status-pending';
+            const responseId = `response-${complaint.id}`;
+            const textareaId = `reply-${complaint.id}`;
+            const statusId = `status-${complaint.id}`;
+            
+            let imageHtml = '';
+            if (complaint.attachment && complaint.attachment.data) {
+                imageHtml = `
+                    <div style="margin: 10px 0;">
+                        <strong>Attached Image:</strong><br>
+                        <img src="${complaint.attachment.data}" alt="Complaint Attachment" class="complaint-image" />
+                    </div>
+                `;
+            }
+            
+            div.innerHTML = `
+                <div class="left">
+                    <div class="student-info">
+                        <strong>${complaint.name}</strong> • ${complaint.email}<br>
+                        <small>Course: ${complaint.course?.toUpperCase() || 'N/A'} • ${complaint.studentId || 'N/A'}</small>
+                    </div>
+                    
+                    <h4>${complaint.category || 'General Complaint'}</h4>
+                    <p>${complaint.message}</p>
+                    ${imageHtml}
+                    <div class="meta">
+                        Complaint ID: ${complaint.id} • 
+                        ${new Date(complaint.createdAt).toLocaleString()} • 
+                        Status: <strong id="${statusId}" class="${statusClass}">${complaint.status}</strong>
+                        <button class="download-btn" onclick="downloadComplaintPDF(${JSON.stringify(complaint).replace(/"/g, '&quot;')})">
+                            📥 Download PDF
+                        </button>
+                    </div>
+                    
+                    <div class="reply-section">
+                        <h4 style="margin-bottom: 10px;">Faculty Response:</h4>
+                        ${complaint.facultyResponse ? `
+                            <div id="${responseId}" class="response-display">
+                                <strong>Your Response:</strong><br>
+                                ${complaint.facultyResponse}<br>
+                                <small><em>Responded on: ${new Date(complaint.respondedAt).toLocaleString()}</em></small>
+                            </div>
+                        ` : `
+                            <textarea class="reply-textarea" id="${textareaId}" placeholder="Type your response here..."></textarea>
+                            <br>
+                            <button class="send-btn" onclick="sendFacultyResponse('${complaint.id}', '${textareaId}', '${statusId}', '${responseId}')">
+                                Send Response
+                            </button>
+                            <div id="${responseId}" class="response-display" style="display: none;"></div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            allList.appendChild(div);
+        });
+    }
+
+    // Debug function
+    function debugComplaints() {
+        console.log('=== DEBUGGING COMPLAINTS ===');
+        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
+        const students = JSON.parse(localStorage.getItem('dmiher_students_v6') || '[]');
+        console.log('Total complaints:', complaints.length);
+        console.log('Total students:', students.length);
+        console.log('Complaints data:', complaints);
+        console.log('Students data:', students);
+        alert(`Check console for data. Complaints: ${complaints.length}, Students: ${students.length}`);
+        renderAllComplaints();
+    }
+    
+    // Faculty authentication check
+    function checkFacultyAuth() {
+        const isLoggedIn = localStorage.getItem('facultyLoggedIn');
+        const loginTime = localStorage.getItem('facultyLoginTime');
+        const currentTime = new Date().getTime();
+        
+        const sessionDuration = 24 * 60 * 60 * 1000;
+        
+        if (isLoggedIn && (currentTime - loginTime) <= sessionDuration) {
+            showFacultyDashboard();
+        } else {
+            localStorage.removeItem('facultyLoggedIn');
+            localStorage.removeItem('facultyLoginTime');
+            showFacultyLogin();
+        }
+    }
+    
+    function showFacultyLogin() {
+        document.getElementById('facultyLoginSection').style.display = 'block';
+        document.getElementById('facultyDashboard').style.display = 'none';
+    }
+    
+    function showFacultyDashboard() {
+        document.getElementById('facultyLoginSection').style.display = 'none';
+        document.getElementById('facultyDashboard').style.display = 'grid';
+        
+        document.getElementById('refreshBtn').addEventListener('click', renderAllComplaints);
+        document.getElementById('clearAll').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear ALL complaints? This cannot be undone.')) {
+                localStorage.removeItem('dmiher_complaints_final_v6');
+                renderAllComplaints();
+            }
+        });
+        
+        document.getElementById('exportAll').addEventListener('click', function() {
+            const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
+            const dataStr = JSON.stringify(complaints, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'complaints-export.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+        
+        setTimeout(renderAllComplaints, 100);
+    }
+    
+    // Setup login functionality
+    document.getElementById('loginBtn').addEventListener('click', function() {
+        const password = document.getElementById('adminPass').value;
+        const messageDiv = document.getElementById('loginMessage');
+        
+        if (password === 'admin123') {
+            localStorage.setItem('facultyLoggedIn', 'true');
+            localStorage.setItem('facultyLoginTime', new Date().getTime());
+            showFacultyDashboard();
+        } else {
+            messageDiv.textContent = 'Invalid password! Use: admin123';
+            messageDiv.style.display = 'block';
+        }
+    });
+    
+    // Setup logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('facultyLoggedIn');
+        localStorage.removeItem('facultyLoginTime');
+        showFacultyLogin();
+        document.getElementById('adminPass').value = '';
+    });
+    
+    // Enter key support for login
+    document.getElementById('adminPass').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('loginBtn').click();
+        }
+    });
+    
+    // Initial auth check
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkFacultyAuth);
+    } else {
+        checkFacultyAuth();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DMIHER Complaint Registration & Tracking System</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    .response-section {
+      background: #f0fdf4;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #bbf7d0;
+      margin-bottom: 20px;
+    }
+    .response-item {
+      background: white;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border-left: 4px solid #059669;
+    }
+    .domain-info {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+  <header class="header container">
+    <div class="brand">
+      <div class="logo"></S></div>
+      <div class="brand-text">
+        <div class="title">SAS</div>
+        <div class="subtitle">Complaint Registration & Tracking System</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-link active" href="index.html">Student</a>
+      <a class="nav-link" href="faculty.html">Faculty</a>
+    </nav>
+  </header>
+  
+  <!-- Student Login Section -->
+  <section id="loginSection" class="container">
+    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
+      <h2>Student Login</h2>
+      <p class="meta" style="margin-bottom: 16px;">Use your DMIHER college email and password</p>
+      
+      <div class="domain-info">
+        <strong>⚠️ Access Restricted</strong><br>
+        Only students with valid <strong>@dmiher.edu.in</strong> email addresses can login and submit complaints.
+      </div>
+      
+      <form id="loginForm" class="form" autocomplete="off">
+        <input id="studentEmail" name="studentEmail" type="email" placeholder="collegeemail@dmiher.edu.in" required />
+        <input id="studentPassword" name="studentPassword" type="password" placeholder="Password" required />
+        
+        <div class="actions">
+          <button class="btn primary" type="submit">Login</button>
+        </div>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+        <p class="meta">New student? 
+          <a href="#" id="showRegistration" style="color: var(--primary); text-decoration: none; font-weight: 600;">Register First</a>
+        </p>
+      </div>
+      
+      <div id="loginMessage" class="meta" style="margin-top: 12px; color: #ef4444; display: none;"></div>
+    </div>
+  </section>
+  
+  <!-- Student Registration Section -->
+  <section id="registrationSection" class="container" style="display: none;">
+    <div class="card form-card" style="max-width: 500px; margin: 50px auto;">
+      <h2>Student Registration</h2>
+      <p class="meta" style="margin-bottom: 16px;">Register with your DMIHER college email</p>
+      
+      <div class="domain-info">
+        <strong>📧 Email Requirement</strong><br>
+        You must use your official <strong>@dmiher.edu.in</strong> email address to register.
+      </div>
+      
+      <form id="registrationForm" class="form" autocomplete="off">
+        <input id="regName" name="regName" placeholder="Full Name as per college records" required />
+        <input id="regEmail" name="regEmail" type="email" placeholder="collegeemail@dmiher.edu.in" required />
+        <input id="regPassword" name="regPassword" type="password" placeholder="Create Password" required />
+        <input id="regConfirmPassword" name="regConfirmPassword" type="password" placeholder="Confirm Password" required />
+        <select id="regCourse" name="regCourse" required>
+          <option value="">Select Your Course</option>
+          <option value="bca">BCA - Bachelor of Computer Applications</option>
+          <option value="bba">BBA - Bachelor of Business Administration</option>
+          <option value="mca">MCA - Master of Computer Applications</option>
+          <option value="bsc_aids">BSc AIDS - Artificial Intelligence & Data Science</option>
+        </select>
+        
+        <div class="actions">
+          <button class="btn primary" type="submit">Register</button>
+          <button class="btn secondary" type="button" id="backToLogin">Back to Login</button>
+        </div>
+      </form>
+      
+      <div id="registrationMessage" class="meta" style="margin-top: 12px; display: none;"></div>
+    </div>
+  </section>
+  
+  <!-- Main Content (hidden until login) -->
+  <main id="mainContent" class="container" style="display: none;">
+    <section class="card form-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 id="complaintTitle">Submit a Complaint</h2>
+        <button class="btn" id="logoutStudentBtn" type="button">Logout</button>
+      </div>
+      
+      <!-- Faculty Response Receipt Section -->
+      <div id="facultyResponseReceipt" class="response-section" style="display: none;">
+        <h3 style="color: #059669; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          📨 Faculty Responses
+        </h3>
+        <div id="responseContent"></div>
+      </div>
+      
+      <form id="complaintForm" class="form" autocomplete="off">
+        <div class="row">
+          <input id="name" name="name" placeholder="Full name" required readonly />
+          <input id="email" name="email" type="email" placeholder="Email" required readonly />
+        </div>
+        <div class="row">
+          <input id="course" name="course" placeholder="Course" readonly />
+          <input id="studentId" name="studentId" placeholder="Student ID" readonly />
+        </div>
+        
+        <!-- Complaint categories -->
+        <div id="complaintCategorySection">
+          <label>Complaint Category</label>
+          <select id="complaintCategory" name="complaintCategory" class="category-select" required>
+            <option value="">Select Category</option>
+            <option value="Academic">Academic Issues</option>
+            <option value="Infrastructure">Infrastructure</option>
+            <option value="Faculty">Faculty Related</option>
+            <option value="Administration">Administration</option>
+            <option value="Library">Library Services</option>
+            <option value="Lab">Lab Facilities</option>
+            <option value="Sports">Sports Facilities</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        
+        <label>Complaint details</label>
+        <textarea id="message" name="message" placeholder="Describe the issue in detail..." required></textarea>
+
+        <label class="file-label">Attach file (Image/PDF) <span class="muted">(optional)</span></label>
+        <input type="file" id="attachment" accept=".png,.jpg,.jpeg,.pdf" />
+
+        <div id="previewArea"></div>
+
+        <div class="actions">
+          <button class="btn primary" type="submit">Submit Complaint</button>
+          <button class="btn" type="button" id="checkResponse">Check Faculty Response</button>
+        </div>
+      </form>
+      
+      <!-- Complaint Submission Info -->
+      <div style="margin-top: 24px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <h4 style="color: #3b82f6; margin-bottom: 8px;">ℹ️ Complaint Process</h4>
+        <ul style="font-size: 13px; color: #475569; line-height: 1.5; padding-left: 16px;">
+          <li>Your complaint will be reviewed by faculty</li>
+          <li>You cannot view or delete your submitted complaints</li>
+          <li>Use "Check Faculty Response" to see updates</li>
+          <li>Faculty will respond within 3-5 working days</li>
+          <li>Download PDF receipt for your records</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="year"></span> DMIHER Complaint Registration & Tracking System</footer>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    
+    // Navigation between login and registration
+    document.getElementById('showRegistration').addEventListener('click', function(e) {
+      e.preventDefault();
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('registrationSection').style.display = 'block';
+    });
+    
+    document.getElementById('backToLogin').addEventListener('click', function() {
+      document.getElementById('registrationSection').style.display = 'none';
+      document.getElementById('loginSection').style.display = 'block';
+    });
+    
+    // Initialize the page
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        initPage('student');
+      });
+    } else {
+      initPage('student');
+    }
+  </script>
+</body>
+</html>
