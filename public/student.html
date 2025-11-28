@@ -109,7 +109,6 @@
 
   <footer class="footer">© <span id="year"></span> DMIHER Complaint Registration & Tracking System</footer>
 
-  <script src="script.js"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     
@@ -122,21 +121,189 @@
       window.location.href = '/';
     }
     
+    // Populate form with user data
+    document.getElementById('name').value = user.name || '';
+    document.getElementById('email').value = user.email || '';
+    document.getElementById('course').value = user.dept || user.course || '';
+    document.getElementById('studentId').value = user.id || '';
+    
     // Logout handler
     document.getElementById('logoutBtn').addEventListener('click', function() {
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
-      window.location.href = '/';
+      window.location.href = '/login';
     });
     
-    // Initialize the page
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function() {
-        initPage('student');
-      });
-    } else {
-      initPage('student');
+    // Handle complaint form submission
+    document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = {
+        studentId: document.getElementById('studentId').value,
+        studentName: document.getElementById('name').value,
+        studentEmail: document.getElementById('email').value,
+        department: document.getElementById('course').value,
+        year: user.year || 'N/A',
+        complaintType: document.getElementById('complaintCategory').value,
+        subject: document.getElementById('complaintCategory').value,
+        description: document.getElementById('message').value
+      };
+      
+      try {
+        const response = await fetch('/api/complaints', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('✅ Complaint submitted successfully! Complaint ID: ' + data.complaint.id);
+          document.getElementById('message').value = '';
+          document.getElementById('complaintCategory').value = '';
+        } else {
+          alert('❌ Failed to submit complaint: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error submitting complaint:', error);
+        alert('❌ Error submitting complaint. Please try again.');
+      }
+    });
+    
+    // Download complaint receipt as PDF
+    function downloadComplaintReceipt(complaint) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      let yPosition = 20;
+      
+      // Header
+      doc.setFillColor(59, 130, 246);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text('DMIHER - Complaint Receipt', 20, 25);
+      
+      // Reset text color
+      doc.setTextColor(0, 0, 0);
+      yPosition = 55;
+      
+      // Receipt details
+      doc.setFontSize(11);
+      doc.text('Receipt Date: ' + new Date().toLocaleDateString(), 20, yPosition);
+      yPosition += 10;
+      doc.text('Complaint ID: ' + complaint.id, 20, yPosition);
+      yPosition += 10;
+      doc.text('Student ID: ' + (complaint.student_id || 'N/A'), 20, yPosition);
+      yPosition += 10;
+      doc.text('Name: ' + (complaint.student_name || 'N/A'), 20, yPosition);
+      yPosition += 10;
+      doc.text('Email: ' + (complaint.student_email || 'N/A'), 20, yPosition);
+      yPosition += 10;
+      doc.text('Course: ' + (complaint.department || 'N/A'), 20, yPosition);
+      yPosition += 10;
+      doc.text('Submitted: ' + new Date(complaint.created_at).toLocaleString(), 20, yPosition);
+      yPosition += 15;
+      
+      // Complaint details
+      doc.setFontSize(13);
+      doc.text('Complaint Details:', 20, yPosition);
+      yPosition += 8;
+      doc.setFontSize(11);
+      doc.text('Category: ' + (complaint.complaint_type || 'N/A'), 20, yPosition);
+      yPosition += 8;
+      const splitMessage = doc.splitTextToSize(complaint.description || 'No details provided', 170);
+      doc.text(splitMessage, 20, yPosition);
+      yPosition += (splitMessage.length * 6) + 15;
+      
+      // Faculty response section
+      if (complaint.faculty_response) {
+        doc.setFillColor(240, 253, 244);
+        doc.rect(20, yPosition, 170, 50, 'F');
+        doc.setFontSize(13);
+        doc.setTextColor(5, 150, 105);
+        doc.text('✓ Faculty Response:', 25, yPosition + 10);
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        const splitResponse = doc.splitTextToSize(complaint.faculty_response, 160);
+        doc.text(splitResponse, 25, yPosition + 20);
+        yPosition += 60;
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Responded on: ' + new Date(complaint.responded_at).toLocaleString(), 25, yPosition);
+        yPosition += 15;
+      }
+      
+      // Footer
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text('This is an official receipt from DMIHER Complaint System', 20, yPosition + 10);
+      doc.text('Generated on: ' + new Date().toLocaleString(), 20, yPosition + 18);
+      
+      // Save PDF
+      doc.save('complaint_receipt_' + complaint.id + '.pdf');
     }
+    
+    // Check faculty response button
+    document.getElementById('checkResponse').addEventListener('click', async function() {
+      try {
+        const response = await fetch('/api/complaints');
+        const complaints = await response.json();
+        
+        // Filter complaints for current student
+        const myComplaints = complaints.filter(c => c.student_email === user.email);
+        const repliedComplaints = myComplaints.filter(c => c.faculty_response);
+        
+        const responseReceipt = document.getElementById('facultyResponseReceipt');
+        const responseContent = document.getElementById('responseContent');
+        
+        if (repliedComplaints.length > 0) {
+          responseReceipt.style.display = 'block';
+          
+          let responseHTML = '';
+          repliedComplaints.forEach(complaint => {
+            const complaintJson = JSON.stringify(complaint).replace(/"/g, '&quot;');
+            responseHTML += `
+              <div style="margin-bottom: 16px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #dcfce7;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                  <strong style="color: #059669;">Complaint ID: ${complaint.id}</strong>
+                  <span style="font-size: 12px; color: #6b7280;">${new Date(complaint.created_at).toLocaleDateString()}</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <strong>Category:</strong> ${complaint.complaint_type}<br>
+                  <strong>Your Complaint:</strong> ${complaint.description}
+                </div>
+                <div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #10b981;">
+                  <strong>Faculty Response:</strong> ${complaint.faculty_response}
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                  <small style="color: #6b7280;">Responded: ${new Date(complaint.responded_at).toLocaleString()}</small>
+                  <button 
+                    onclick='downloadComplaintReceipt(${complaintJson})' 
+                    style="background: #10b981; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                    onmouseover="this.style.background='#059669'" 
+                    onmouseout="this.style.background='#10b981'">
+                    📥 Download Receipt
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          
+          responseContent.innerHTML = responseHTML;
+          alert('✅ Found ' + repliedComplaints.length + ' faculty response(s)');
+        } else {
+          responseReceipt.style.display = 'none';
+          alert('ℹ️ No faculty responses available yet');
+        }
+      } catch (error) {
+        console.error('Error fetching responses:', error);
+        alert('❌ Error fetching responses. Please try again.');
+      }
+    });
   </script>
 </body>
 </html>

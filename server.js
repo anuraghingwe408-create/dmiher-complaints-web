@@ -15,8 +15,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 
-// Serve login page as default
+// Serve landing page as default
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve login page
+app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 

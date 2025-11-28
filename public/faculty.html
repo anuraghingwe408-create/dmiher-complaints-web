@@ -109,7 +109,7 @@
       <p class="meta" style="margin-bottom: 20px;">Enter password to access faculty dashboard</p>
       
       <div class="login-row" style="justify-content: center;">
-        <input id="adminPass" placeholder="Enter password: admin123" type="password" style="flex: 1;" />
+        <input id="adminPass" placeholder="Enter password" type="password" style="flex: 1;" />
         <button class="btn primary" id="loginBtn" type="button">Login</button>
       </div>
       
@@ -154,7 +154,7 @@
     document.getElementById('year2').textContent = new Date().getFullYear();
     
     // Faculty Response System
-    function sendFacultyResponse(complaintId, textareaId, statusId, responseDivId) {
+    async function sendFacultyResponse(complaintId, textareaId, statusId, responseDivId) {
         const replyText = document.getElementById(textareaId).value;
         
         if (!replyText.trim()) {
@@ -162,33 +162,41 @@
             return;
         }
         
-        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
-        const updatedComplaints = complaints.map(complaint => {
-            if (complaint.id === complaintId) {
-                return {
-                    ...complaint,
+        try {
+            const response = await fetch(`/api/complaints/${complaintId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
                     status: 'Resolved',
-                    facultyResponse: replyText,
-                    respondedAt: new Date().toISOString()
-                };
+                    facultyResponse: replyText
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById(statusId).innerHTML = '<span class="status-resolved">Resolved</span>';
+                
+                const responseDiv = document.getElementById(responseDivId);
+                responseDiv.innerHTML = `
+                    <strong>Faculty Response:</strong><br>
+                    ${replyText}<br>
+                    <small><em>Responded on: ${new Date().toLocaleString()}</em></small>
+                `;
+                responseDiv.style.display = 'block';
+                document.getElementById(textareaId).value = '';
+                
+                alert(`✅ Response sent successfully for Complaint ID: ${complaintId}`);
+                renderAllComplaints();
+            } else {
+                alert('❌ Failed to send response: ' + (data.error || 'Unknown error'));
             }
-            return complaint;
-        });
-        
-        localStorage.setItem('dmiher_complaints_final_v6', JSON.stringify(updatedComplaints));
-        document.getElementById(statusId).innerHTML = '<span class="status-resolved">Status: Resolved</span>';
-        
-        const responseDiv = document.getElementById(responseDivId);
-        responseDiv.innerHTML = `
-            <strong>Faculty Response:</strong><br>
-            ${replyText}<br>
-            <small><em>Responded on: ${new Date().toLocaleString()}</em></small>
-        `;
-        responseDiv.style.display = 'block';
-        document.getElementById(textareaId).value = '';
-        
-        alert(`Response sent successfully for Complaint ID: ${complaintId}`);
-        renderAllComplaints();
+        } catch (error) {
+            console.error('Error sending response:', error);
+            alert('❌ Error sending response. Please try again.');
+        }
     }
 
     // Download Complaint as PDF
@@ -266,115 +274,124 @@
     }
 
     // Render Complaints
-    function renderAllComplaints() {
-        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
+    async function renderAllComplaints() {
         const allList = document.getElementById('allList');
         const statsInfo = document.getElementById('statsInfo');
         
         if (!allList) return;
         
-        allList.innerHTML = '';
+        allList.innerHTML = '<p class="meta">Loading complaints...</p>';
         
-        // Update statistics
-        const totalComplaints = complaints.length;
-        const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
-        const resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
-        
-        if (statsInfo) {
-            statsInfo.innerHTML = `
-                Total: ${totalComplaints} | 
-                Pending: ${pendingComplaints} | 
-                Resolved: ${resolvedComplaints}
-            `;
-        }
-        
-        if (complaints.length === 0) {
-            allList.innerHTML = '<p class="meta">No complaints available</p>';
-            return;
-        }
-        
-        complaints.reverse().forEach((complaint, index) => {
-            const div = document.createElement('div');
-            div.className = 'item';
-            div.style.padding = '15px';
-            div.style.marginBottom = '15px';
-            div.style.border = '1px solid #e5e7eb';
-            div.style.borderRadius = '8px';
-            div.style.background = '#f9fafb';
+        try {
+            const response = await fetch('/api/complaints');
+            const complaints = await response.json();
             
-            const statusClass = complaint.status === 'Resolved' ? 'status-resolved' : 'status-pending';
-            const responseId = `response-${complaint.id}`;
-            const textareaId = `reply-${complaint.id}`;
-            const statusId = `status-${complaint.id}`;
+            allList.innerHTML = '';
             
-            let imageHtml = '';
-            if (complaint.attachment && complaint.attachment.data) {
-                imageHtml = `
-                    <div style="margin: 10px 0;">
-                        <strong>Attached Image:</strong><br>
-                        <img src="${complaint.attachment.data}" alt="Complaint Attachment" class="complaint-image" />
-                    </div>
+            // Update statistics
+            const totalComplaints = complaints.length;
+            const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
+            const resolvedComplaints = complaints.filter(c => c.status === 'Resolved').length;
+            
+            if (statsInfo) {
+                statsInfo.innerHTML = `
+                    Total: ${totalComplaints} | 
+                    Pending: ${pendingComplaints} | 
+                    Resolved: ${resolvedComplaints}
                 `;
             }
             
-            div.innerHTML = `
-                <div class="left">
-                    <div class="student-info">
-                        <strong>${complaint.name}</strong> • ${complaint.email}<br>
-                        <small>Course: ${complaint.course?.toUpperCase() || 'N/A'} • ${complaint.studentId || 'N/A'}</small>
+            if (complaints.length === 0) {
+                allList.innerHTML = '<p class="meta">No complaints available</p>';
+                return;
+            }
+        
+            complaints.reverse().forEach((complaint, index) => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.style.padding = '15px';
+                div.style.marginBottom = '15px';
+                div.style.border = '1px solid #e5e7eb';
+                div.style.borderRadius = '8px';
+                div.style.background = '#f9fafb';
+                
+                const statusClass = complaint.status === 'Resolved' ? 'status-resolved' : 'status-pending';
+                const responseId = `response-${complaint.id}`;
+                const textareaId = `reply-${complaint.id}`;
+                const statusId = `status-${complaint.id}`;
+                
+                div.innerHTML = `
+                    <div class="left">
+                        <div class="student-info">
+                            <strong>${complaint.student_name}</strong> • ${complaint.student_email}<br>
+                            <small>Course: ${complaint.department?.toUpperCase() || 'N/A'} • ${complaint.student_id || 'N/A'}</small>
+                        </div>
+                        
+                        <h4>${complaint.complaint_type || 'General Complaint'}</h4>
+                        <p>${complaint.description}</p>
+                        <div class="meta">
+                            Complaint ID: ${complaint.id} • 
+                            ${new Date(complaint.created_at).toLocaleString()} • 
+                            Status: <strong id="${statusId}" class="${statusClass}">${complaint.status}</strong>
+                        </div>
+                        
+                        <div class="reply-section">
+                            <h4 style="margin-bottom: 10px;">Faculty Response:</h4>
+                            ${complaint.faculty_response ? `
+                                <div id="${responseId}" class="response-display">
+                                    <strong>Your Response:</strong><br>
+                                    ${complaint.faculty_response}<br>
+                                    <small><em>Responded on: ${new Date(complaint.responded_at).toLocaleString()}</em></small>
+                                </div>
+                            ` : `
+                                <textarea class="reply-textarea" id="${textareaId}" placeholder="Type your response here..."></textarea>
+                                <br>
+                                <button class="send-btn" onclick="sendFacultyResponse('${complaint.id}', '${textareaId}', '${statusId}', '${responseId}')">
+                                    Send Response
+                                </button>
+                                <div id="${responseId}" class="response-display" style="display: none;"></div>
+                            `}
+                        </div>
                     </div>
-                    
-                    <h4>${complaint.category || 'General Complaint'}</h4>
-                    <p>${complaint.message}</p>
-                    ${imageHtml}
-                    <div class="meta">
-                        Complaint ID: ${complaint.id} • 
-                        ${new Date(complaint.createdAt).toLocaleString()} • 
-                        Status: <strong id="${statusId}" class="${statusClass}">${complaint.status}</strong>
-                        <button class="download-btn" onclick="downloadComplaintPDF(${JSON.stringify(complaint).replace(/"/g, '&quot;')})">
-                            📥 Download PDF
-                        </button>
-                    </div>
-                    
-                    <div class="reply-section">
-                        <h4 style="margin-bottom: 10px;">Faculty Response:</h4>
-                        ${complaint.facultyResponse ? `
-                            <div id="${responseId}" class="response-display">
-                                <strong>Your Response:</strong><br>
-                                ${complaint.facultyResponse}<br>
-                                <small><em>Responded on: ${new Date(complaint.respondedAt).toLocaleString()}</em></small>
-                            </div>
-                        ` : `
-                            <textarea class="reply-textarea" id="${textareaId}" placeholder="Type your response here..."></textarea>
-                            <br>
-                            <button class="send-btn" onclick="sendFacultyResponse('${complaint.id}', '${textareaId}', '${statusId}', '${responseId}')">
-                                Send Response
-                            </button>
-                            <div id="${responseId}" class="response-display" style="display: none;"></div>
-                        `}
-                    </div>
-                </div>
-            `;
-            
-            allList.appendChild(div);
-        });
+                `;
+                
+                allList.appendChild(div);
+            });
+        } catch (error) {
+            console.error('Error fetching complaints:', error);
+            allList.innerHTML = '<p class="meta" style="color: #ef4444;">Error loading complaints. Please try again.</p>';
+        }
     }
 
     // Debug function
-    function debugComplaints() {
+    async function debugComplaints() {
         console.log('=== DEBUGGING COMPLAINTS ===');
-        const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
-        const students = JSON.parse(localStorage.getItem('dmiher_students_v6') || '[]');
-        console.log('Total complaints:', complaints.length);
-        console.log('Total students:', students.length);
-        console.log('Complaints data:', complaints);
-        console.log('Students data:', students);
-        alert(`Check console for data. Complaints: ${complaints.length}, Students: ${students.length}`);
-        renderAllComplaints();
+        try {
+            const response = await fetch('/api/complaints');
+            const complaints = await response.json();
+            console.log('Total complaints:', complaints.length);
+            console.log('Complaints data:', complaints);
+            alert(`MongoDB Complaints: ${complaints.length}\nCheck console for details.`);
+            renderAllComplaints();
+        } catch (error) {
+            console.error('Error fetching complaints:', error);
+            alert('Error fetching complaints from MongoDB');
+        }
     }
     
     // Faculty authentication check
     function checkFacultyAuth() {
+        // Check if user is logged in via unified login system
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const userType = localStorage.getItem('userType');
+        
+        if (user && userType === 'faculty') {
+            // Already logged in via unified system
+            showFacultyDashboard();
+            return;
+        }
+        
+        // Fallback to old faculty login system
         const isLoggedIn = localStorage.getItem('facultyLoggedIn');
         const loginTime = localStorage.getItem('facultyLoginTime');
         const currentTime = new Date().getTime();
@@ -400,23 +417,43 @@
         document.getElementById('facultyDashboard').style.display = 'grid';
         
         document.getElementById('refreshBtn').addEventListener('click', renderAllComplaints);
-        document.getElementById('clearAll').addEventListener('click', function() {
+        
+        document.getElementById('clearAll').addEventListener('click', async function() {
             if (confirm('Are you sure you want to clear ALL complaints? This cannot be undone.')) {
-                localStorage.removeItem('dmiher_complaints_final_v6');
-                renderAllComplaints();
+                try {
+                    const response = await fetch('/api/complaints');
+                    const complaints = await response.json();
+                    
+                    for (const complaint of complaints) {
+                        await fetch(`/api/complaints/${complaint.id}`, { method: 'DELETE' });
+                    }
+                    
+                    alert('✅ All complaints cleared');
+                    renderAllComplaints();
+                } catch (error) {
+                    console.error('Error clearing complaints:', error);
+                    alert('❌ Error clearing complaints');
+                }
             }
         });
         
-        document.getElementById('exportAll').addEventListener('click', function() {
-            const complaints = JSON.parse(localStorage.getItem('dmiher_complaints_final_v6') || '[]');
-            const dataStr = JSON.stringify(complaints, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'complaints-export.json';
-            link.click();
-            URL.revokeObjectURL(url);
+        document.getElementById('exportAll').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/complaints');
+                const complaints = await response.json();
+                const dataStr = JSON.stringify(complaints, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'complaints-export.json';
+                link.click();
+                URL.revokeObjectURL(url);
+                alert('✅ Complaints exported');
+            } catch (error) {
+                console.error('Error exporting complaints:', error);
+                alert('❌ Error exporting complaints');
+            }
         });
         
         setTimeout(renderAllComplaints, 100);
@@ -439,10 +476,14 @@
     
     // Setup logout functionality
     document.getElementById('logoutBtn').addEventListener('click', function() {
+        // Clear both authentication systems
         localStorage.removeItem('facultyLoggedIn');
         localStorage.removeItem('facultyLoginTime');
-        showFacultyLogin();
-        document.getElementById('adminPass').value = '';
+        localStorage.removeItem('user');
+        localStorage.removeItem('userType');
+        
+        // Redirect to main login page
+        window.location.href = '/';
     });
     
     // Enter key support for login
