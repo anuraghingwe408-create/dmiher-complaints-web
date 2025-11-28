@@ -14,7 +14,7 @@ package-lock.json
 
 # Data files (sensitive user data)
 data/
-*.json
+data/*.json
 
 # Logs
 logs/
