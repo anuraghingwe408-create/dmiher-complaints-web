@@ -229,20 +229,33 @@ app.post('/api/student/login', async (req, res) => {
 // Unified Login (Student & Faculty)
 app.post('/api/login', async (req, res) => {
     try {
+        console.log('🔐 Login attempt received');
         const { email, password } = req.body;
+        
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email and password are required' 
+            });
+        }
         
         // Validate DMIHER email format
         if (!isValidDMIHEREmail(email)) {
+            console.log('❌ Invalid email format:', email);
             return res.status(400).json({ 
                 success: false, 
                 error: 'Invalid email format. Use: scXXXXsaXXXXX@dmiher.edu.in (e.g., sc2024sa00087@dmiher.edu.in)' 
             });
         }
         
+        console.log('✅ Email format valid, checking credentials...');
+        
         // Check if it's a faculty login (check faculty table first)
-        const faculty = await Faculty.findOne({ email, password });
+        const faculty = await Faculty.findOne({ email, password }).maxTimeMS(5000);
         
         if (faculty) {
+            console.log('✅ Faculty login successful:', faculty.name);
             const facultyData = faculty.toObject();
             delete facultyData.password;
             return res.json({ 
@@ -253,9 +266,10 @@ app.post('/api/login', async (req, res) => {
         }
         
         // Check if it's a student login
-        const student = await Student.findOne({ email, password });
+        const student = await Student.findOne({ email, password }).maxTimeMS(5000);
         
         if (student) {
+            console.log('✅ Student login successful:', student.name);
             const studentData = student.toObject();
             delete studentData.password;
             return res.json({ 
@@ -266,10 +280,20 @@ app.post('/api/login', async (req, res) => {
         }
         
         // No match found
+        console.log('❌ Login failed: Invalid credentials for', email);
         res.status(401).json({ success: false, error: 'Invalid email or password' });
         
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error('❌ Error during login:', error);
+        
+        // Handle specific errors
+        if (error.name === 'MongooseError' || error.message.includes('buffering')) {
+            return res.status(503).json({ 
+                success: false,
+                error: 'Database temporarily unavailable. Please try again.' 
+            });
+        }
+        
         res.status(500).json({ 
             success: false,
             error: 'Login failed. Please try again.' 

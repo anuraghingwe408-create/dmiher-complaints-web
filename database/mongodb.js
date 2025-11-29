@@ -16,11 +16,17 @@ const connectDB = async () => {
             console.log('⚠️  Mongoose disconnected from MongoDB');
         });
 
-        // Connect to MongoDB
+        // Connect to MongoDB with robust options
         await mongoose.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-            socketTimeoutMS: 45000,
-            bufferCommands: false // Disable buffering to fail fast
+            serverSelectionTimeoutMS: 30000, // 30 seconds to select server
+            socketTimeoutMS: 45000,           // 45 seconds for socket operations
+            connectTimeoutMS: 30000,          // 30 seconds for initial connection
+            heartbeatFrequencyMS: 10000,      // Check connection every 10 seconds
+            retryWrites: true,                // Retry failed writes
+            retryReads: true,                 // Retry failed reads
+            maxPoolSize: 10,                  // Maximum connection pool size
+            minPoolSize: 2,                   // Minimum connection pool size
+            bufferCommands: false             // Disable buffering to fail fast
         });
         
         // Wait for connection to be ready
