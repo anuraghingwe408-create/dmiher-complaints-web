@@ -251,8 +251,26 @@ app.post('/api/login', async (req, res) => {
         
         console.log('✅ Email format valid, checking credentials...');
         
+        // Check database connection before querying
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            console.log('⚠️  Database not connected, waiting...');
+            // Wait up to 5 seconds for connection
+            let attempts = 0;
+            while (mongoose.connection.readyState !== 1 && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempts++;
+            }
+            if (mongoose.connection.readyState !== 1) {
+                return res.status(503).json({ 
+                    success: false,
+                    error: 'Database connection issue. Please try again in a moment.' 
+                });
+            }
+        }
+        
         // Check if it's a faculty login (check faculty table first)
-        const faculty = await Faculty.findOne({ email, password }).maxTimeMS(5000);
+        const faculty = await Faculty.findOne({ email, password }).maxTimeMS(10000);
         
         if (faculty) {
             console.log('✅ Faculty login successful:', faculty.name);
@@ -266,7 +284,7 @@ app.post('/api/login', async (req, res) => {
         }
         
         // Check if it's a student login
-        const student = await Student.findOne({ email, password }).maxTimeMS(5000);
+        const student = await Student.findOne({ email, password }).maxTimeMS(10000);
         
         if (student) {
             console.log('✅ Student login successful:', student.name);

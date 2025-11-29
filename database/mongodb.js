@@ -14,6 +14,11 @@ const connectDB = async () => {
 
         mongoose.connection.on('disconnected', () => {
             console.log('⚠️  Mongoose disconnected from MongoDB');
+            console.log('🔄 Attempting to reconnect...');
+        });
+
+        mongoose.connection.on('reconnected', () => {
+            console.log('✅ Mongoose reconnected to MongoDB');
         });
 
         // Connect to MongoDB with robust options
@@ -26,7 +31,8 @@ const connectDB = async () => {
             retryReads: true,                 // Retry failed reads
             maxPoolSize: 10,                  // Maximum connection pool size
             minPoolSize: 2,                   // Minimum connection pool size
-            bufferCommands: false             // Disable buffering to fail fast
+            autoIndex: true,                  // Build indexes automatically
+            family: 4                         // Use IPv4, skip trying IPv6
         });
         
         // Wait for connection to be ready
