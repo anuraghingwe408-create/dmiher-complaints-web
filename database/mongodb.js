@@ -1,18 +1,40 @@
 const mongoose = require('mongoose');
 
-// MongoDB Connection
+// MongoDB Connection with event listeners
 const connectDB = async () => {
     try {
+        // Connection event listeners
+        mongoose.connection.on('connected', () => {
+            console.log('📡 Mongoose connected to MongoDB');
+        });
+
+        mongoose.connection.on('error', (err) => {
+            console.error('❌ Mongoose connection error:', err);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.log('⚠️  Mongoose disconnected from MongoDB');
+        });
+
+        // Connect to MongoDB
         await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
             socketTimeoutMS: 45000,
             bufferCommands: false // Disable buffering to fail fast
         });
-        console.log('✅ MongoDB connected successfully');
-        return true;
+        
+        // Wait for connection to be ready
+        if (mongoose.connection.readyState === 1) {
+            console.log('✅ MongoDB connection ready');
+            return true;
+        } else {
+            console.error('⚠️  MongoDB connection not ready');
+            return false;
+        }
     } catch (error) {
         console.error('❌ MongoDB connection failed:', error.message);
-        console.error('⚠️  Please check your MongoDB connection string');
+        console.error('⚠️  Please check your MongoDB connection string in .env file');
+        console.error('⚠️  Expected format: MONGODB_URI=mongodb+srv://...');
         return false;
     }
 };

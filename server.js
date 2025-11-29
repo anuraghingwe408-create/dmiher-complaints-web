@@ -53,6 +53,24 @@ function validateAttachment(attachment) {
 
 // Routes
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState;
+    const states = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+    };
+    
+    res.json({
+        status: dbState === 1 ? 'healthy' : 'unhealthy',
+        database: states[dbState] || 'unknown',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Serve landing page as default
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -412,29 +430,42 @@ app.get('/api/students', async (req, res) => {
 // Initialize database and start server
 async function startServer() {
     try {
+        console.log('🔄 Connecting to MongoDB...');
+        
         // Connect to MongoDB
         const connected = await connectDB();
         
         if (!connected) {
-            console.error('⚠️  Starting without database connection. Please check your MongoDB configuration.');
-        } else {
-            // Initialize database with default data
-            await initializeDatabase();
+            console.error('⚠️  Failed to connect to MongoDB. Please check your configuration.');
+            console.error('⚠️  Server will not start without database connection.');
+            if (process.env.VERCEL !== '1') {
+                process.exit(1);
+            }
+            return;
         }
+
+        console.log('✅ MongoDB connection established');
+        
+        // Initialize database with default data
+        await initializeDatabase();
+        
+        console.log('✅ Database initialization complete');
 
         // Start server only if not in Vercel environment
         if (process.env.VERCEL !== '1') {
             app.listen(PORT, () => {
-                console.log('🚀 DMIHER Complaint Portal Server Started!');
+                console.log('\n🚀 DMIHER Complaint Portal Server Started!');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 console.log(`📍 Server running on: http://localhost:${PORT}`);
                 console.log(`📚 Student Portal: http://localhost:${PORT}/`);
                 console.log(`👨‍🏫 Faculty Portal: http://localhost:${PORT}/faculty`);
                 console.log(`🔑 Faculty Password: ${process.env.FACULTY_PASSWORD || 'admin123'}`);
-                console.log('✅ MongoDB Database connected');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('✅ All systems ready - Database connected\n');
             });
         }
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('❌ Failed to start server:', error);
         if (process.env.VERCEL !== '1') {
             process.exit(1);
         }
