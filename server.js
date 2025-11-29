@@ -13,6 +13,17 @@ app.use(express.json({ limit: '10mb' })); // Increase limit for Base64 files
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Middleware to check database connection
+const checkDBConnection = (req, res, next) => {
+    if (require('mongoose').connection.readyState !== 1) {
+        return res.status(503).json({ 
+            success: false, 
+            error: 'Database connection not ready. Please try again in a moment.' 
+        });
+    }
+    next();
+};
+
 // File validation function
 function validateAttachment(attachment) {
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
@@ -63,7 +74,7 @@ app.get('/faculty', (req, res) => {
 });
 
 // Get all complaints
-app.get('/api/complaints', async (req, res) => {
+app.get('/api/complaints', checkDBConnection, async (req, res) => {
     try {
         const complaints = await Complaint.find().sort({ created_at: -1 });
         res.json(complaints);
@@ -74,7 +85,7 @@ app.get('/api/complaints', async (req, res) => {
 });
 
 // Add new complaint
-app.post('/api/complaints', async (req, res) => {
+app.post('/api/complaints', checkDBConnection, async (req, res) => {
     try {
         console.log('📥 Received complaint submission');
         const { attachment, ...complaintData } = req.body;
@@ -191,7 +202,7 @@ app.post('/api/student/login', async (req, res) => {
 });
 
 // Unified Login (Student & Faculty)
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', checkDBConnection, async (req, res) => {
     try {
         const { email, password } = req.body;
         
@@ -273,8 +284,9 @@ function isValidDMIHEREmail(email) {
 }
 
 // Register new student
-app.post('/api/student/register', async (req, res) => {
+app.post('/api/student/register', checkDBConnection, async (req, res) => {
     try {
+        console.log('📝 Student registration request received');
         const { name, course, email, password, phone } = req.body;
 
         // Validate required fields
@@ -293,6 +305,21 @@ app.post('/api/student/register', async (req, res) => {
             });
         }
 
+        console.log('✅ Validation passed, checking for existing email...');
+        
+        // Check if email already exists first (faster query)
+        const existing = await Student.findOne({ email }).maxTimeMS(5000);
+        
+        if (existing) {
+            console.log('⚠️  Email already registered');
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email already registered' 
+            });
+        }
+
+        console.log('✅ Email available, generating student ID...');
+
         // Generate student ID
         const coursePrefix = {
             'bca': 'BCA',
@@ -304,22 +331,16 @@ app.post('/api/student/register', async (req, res) => {
         const prefix = coursePrefix[course] || 'STU';
         const year = new Date().getFullYear();
         
-        const count = await Student.countDocuments({ course });
+        // Use estimatedDocumentCount for faster counting
+        const count = await Student.countDocuments({ course }).maxTimeMS(5000);
         const nextSerial = count + 1;
         const studentId = `${prefix}${year}${String(nextSerial).padStart(3, '0')}`;
 
-        // Check if email already exists
-        const existing = await Student.findOne({ email });
-        
-        if (existing) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Email already registered' 
-            });
-        }
+        console.log('✅ Generated student ID:', studentId);
+        console.log('💾 Creating student record...');
 
         // Insert new student with provided password
-        const newStudent = await Student.create({
+        await Student.create({
             id: studentId,
             password,
             name,
@@ -328,6 +349,8 @@ app.post('/api/student/register', async (req, res) => {
             phone,
             course
         });
+
+        console.log('✅ Student registered successfully');
 
         res.json({
             success: true,
@@ -341,7 +364,23 @@ app.post('/api/student/register', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error registering student:', error);
+        console.error('❌ Error registering student:', error);
+        
+        // Handle specific MongoDB errors
+        if (error.name === 'MongooseError' && error.message.includes('buffering')) {
+            return res.status(503).json({ 
+                success: false,
+                error: 'Database connection issue. Please try again in a moment.' 
+            });
+        }
+        
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Email or Student ID already exists' 
+            });
+        }
+        
         res.status(500).json({ 
             success: false,
             error: error.message || 'Registration failed. Please try again.' 
