@@ -251,26 +251,9 @@ app.post('/api/login', async (req, res) => {
         
         console.log('✅ Email format valid, checking credentials...');
         
-        // Check database connection before querying
-        const mongoose = require('mongoose');
-        if (mongoose.connection.readyState !== 1) {
-            console.log('⚠️  Database not connected, waiting...');
-            // Wait up to 5 seconds for connection
-            let attempts = 0;
-            while (mongoose.connection.readyState !== 1 && attempts < 10) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                attempts++;
-            }
-            if (mongoose.connection.readyState !== 1) {
-                return res.status(503).json({ 
-                    success: false,
-                    error: 'Database connection issue. Please try again in a moment.' 
-                });
-            }
-        }
-        
         // Check if it's a faculty login (check faculty table first)
-        const faculty = await Faculty.findOne({ email, password }).maxTimeMS(10000);
+        // MongoDB will handle reconnection automatically with retry logic
+        const faculty = await Faculty.findOne({ email, password });
         
         if (faculty) {
             console.log('✅ Faculty login successful:', faculty.name);
@@ -284,7 +267,7 @@ app.post('/api/login', async (req, res) => {
         }
         
         // Check if it's a student login
-        const student = await Student.findOne({ email, password }).maxTimeMS(10000);
+        const student = await Student.findOne({ email, password });
         
         if (student) {
             console.log('✅ Student login successful:', student.name);
@@ -303,14 +286,8 @@ app.post('/api/login', async (req, res) => {
         
     } catch (error) {
         console.error('❌ Error during login:', error);
-        
-        // Handle specific errors
-        if (error.name === 'MongooseError' || error.message.includes('buffering')) {
-            return res.status(503).json({ 
-                success: false,
-                error: 'Database temporarily unavailable. Please try again.' 
-            });
-        }
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
         
         res.status(500).json({ 
             success: false,
@@ -375,7 +352,7 @@ app.post('/api/student/register', async (req, res) => {
         console.log('✅ Validation passed, checking for existing email...');
         
         // Check if email already exists first (faster query)
-        const existing = await Student.findOne({ email }).maxTimeMS(5000);
+        const existing = await Student.findOne({ email });
         
         if (existing) {
             console.log('⚠️  Email already registered');
@@ -399,7 +376,7 @@ app.post('/api/student/register', async (req, res) => {
         const year = new Date().getFullYear();
         
         // Use estimatedDocumentCount for faster counting
-        const count = await Student.countDocuments({ course }).maxTimeMS(5000);
+        const count = await Student.countDocuments({ course });
         const nextSerial = count + 1;
         const studentId = `${prefix}${year}${String(nextSerial).padStart(3, '0')}`;
 
