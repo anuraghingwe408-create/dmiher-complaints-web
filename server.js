@@ -341,11 +341,13 @@ app.post('/api/student/register', async (req, res) => {
             });
         }
 
-        // Validate DMIHER email format
-        if (!isValidDMIHEREmail(email)) {
+        // Validate email format (simplified - just check if it's a valid email)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.log('❌ Invalid email format:', email);
             return res.status(400).json({ 
                 success: false, 
-                error: 'Invalid email format. Use: scXXXXsaXXXXX@dmiher.edu.in (e.g., sc2024sa00087@dmiher.edu.in)' 
+                error: 'Please enter a valid email address' 
             });
         }
 
@@ -364,35 +366,34 @@ app.post('/api/student/register', async (req, res) => {
 
         console.log('✅ Email available, generating student ID...');
 
-        // Generate student ID
+        // Generate student ID (simplified)
         const coursePrefix = {
             'bca': 'BCA',
-            'bba': 'BBA',
+            'bba': 'BBA', 
             'mca': 'MCA',
-            'bsc_aids': 'BSCAIDS'
+            'bsc_aids': 'BSC'
         };
 
-        const prefix = coursePrefix[course] || 'STU';
+        const prefix = coursePrefix[course?.toLowerCase()] || 'STU';
         const year = new Date().getFullYear();
-        
-        // Use estimatedDocumentCount for faster counting
-        const count = await Student.countDocuments({ course });
-        const nextSerial = count + 1;
-        const studentId = `${prefix}${year}${String(nextSerial).padStart(3, '0')}`;
+        const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+        const studentId = `${prefix}${year}${timestamp}`;
 
         console.log('✅ Generated student ID:', studentId);
         console.log('💾 Creating student record...');
 
         // Insert new student with provided password
-        await Student.create({
+        const newStudent = await Student.create({
             id: studentId,
-            password,
-            name,
-            dept: course.toUpperCase(),
+            password: password || 'default123',
+            name: name || 'Student',
+            dept: course?.toUpperCase() || 'GENERAL',
             email,
-            phone,
-            course
+            phone: phone || '',
+            course: course?.toLowerCase() || 'general'
         });
+        
+        console.log('✅ Student created with ID:', newStudent.id);
 
         console.log('✅ Student registered successfully');
 
@@ -429,10 +430,11 @@ app.post('/api/student/register', async (req, res) => {
             });
         }
         
-        // Generic error response
+        // Generic error response with more details
+        console.error('❌ Registration failed with unknown error');
         res.status(500).json({ 
             success: false,
-            error: 'Registration failed. Please try again.' 
+            error: 'Registration failed: ' + (error.message || 'Unknown error') 
         });
     }
 });
