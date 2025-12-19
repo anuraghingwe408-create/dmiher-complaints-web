@@ -20,6 +20,13 @@ const connectDB = async () => {
         mongoose.connection.on('reconnected', () => {
             console.log('✅ Mongoose reconnected to MongoDB');
         });
+
+        // Add additional error handling
+        process.on('SIGINT', async () => {
+            await mongoose.connection.close();
+            console.log('MongoDB connection closed due to app termination');
+            process.exit(0);
+        });
         // Connect to MongoDB with robust options
         await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 30000, // 30 seconds to select server
@@ -143,4 +150,17 @@ async function initializeDatabase() {
     }
 }
 
-module.exports = { connectDB, initializeDatabase, Faculty, Student, Complaint };
+// Database health check function
+const checkDatabaseHealth = async () => {
+    try {
+        const adminDb = mongoose.connection.db.admin();
+        const result = await adminDb.ping();
+        console.log('✅ Database health check passed:', result);
+        return true;
+    } catch (error) {
+        console.error('❌ Database health check failed:', error);
+        return false;
+    }
+};
+
+module.exports = { connectDB, initializeDatabase, Faculty, Student, Complaint, checkDatabaseHealth };

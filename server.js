@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { connectDB, initializeDatabase, Faculty, Student, Complaint } = require('./database/mongodb');
+const { connectDB, initializeDatabase, Faculty, Student, Complaint, checkDatabaseHealth } = require('./database/mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,7 +61,7 @@ function validateAttachment(attachment) {
 // Routes
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
     const mongoose = require('mongoose');
     const dbState = mongoose.connection.readyState;
     const states = {
@@ -71,9 +71,13 @@ app.get('/api/health', (req, res) => {
         3: 'disconnecting'
     };
     
+    // Perform database ping test
+    const dbHealthy = await checkDatabaseHealth();
+    
     res.json({
-        status: dbState === 1 ? 'healthy' : 'unhealthy',
+        status: (dbState === 1 && dbHealthy) ? 'healthy' : 'unhealthy',
         database: states[dbState] || 'unknown',
+        ping: dbHealthy ? 'success' : 'failed',
         timestamp: new Date().toISOString()
     });
 });
