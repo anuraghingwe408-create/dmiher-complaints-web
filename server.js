@@ -44,6 +44,19 @@ function validateAttachment(attachment) {
 
 // Routes
 
+// Test endpoint
+app.get('/api/test', (req, res) => {
+    console.log('🧪 Test endpoint hit');
+    res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint for debugging
+app.post('/api/test', (req, res) => {
+    console.log('🧪 Test endpoint hit:', new Date().toISOString());
+    console.log('Test body:', req.body);
+    res.json({ success: true, message: 'Test endpoint working', timestamp: new Date().toISOString() });
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
     try {
@@ -314,7 +327,10 @@ function isValidDMIHEREmail(email) {
 // Register new student
 app.post('/api/student/register', async (req, res) => {
     try {
-        console.log('📝 Student registration request received');
+        console.log('📝 Student registration request received at:', new Date().toISOString());
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+        console.log('Content-Type:', req.headers['content-type']);
+        
         const { name, course, email, password, phone } = req.body;
 
         // Validate required fields
