@@ -20,7 +20,6 @@ const connectDB = async () => {
         mongoose.connection.on('reconnected', () => {
             console.log('✅ Mongoose reconnected to MongoDB');
         });
-
         // Connect to MongoDB with robust options
         await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 30000, // 30 seconds to select server
