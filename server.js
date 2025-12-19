@@ -331,15 +331,7 @@ app.post('/api/student/register', async (req, res) => {
         console.log('Request body:', JSON.stringify(req.body, null, 2));
         console.log('Content-Type:', req.headers['content-type']);
         
-        // Check database connection
-        const mongoose = require('mongoose');
-        if (mongoose.connection.readyState !== 1) {
-            console.log('❌ Database not connected, readyState:', mongoose.connection.readyState);
-            return res.status(503).json({
-                success: false,
-                error: 'Database not ready. Please try again in a moment.'
-            });
-        }
+        // Database connection is guaranteed by server startup process
         
         const { name, course, email, password, phone } = req.body;
 
@@ -363,8 +355,8 @@ app.post('/api/student/register', async (req, res) => {
 
         console.log('✅ Validation passed, checking for existing email...');
         
-        // Check if email already exists first (faster query with timeout)
-        const existing = await Student.findOne({ email }).maxTimeMS(5000);
+        // Check if email already exists first (faster query)
+        const existing = await Student.findOne({ email });
         
         if (existing) {
             console.log('⚠️  Email already registered');

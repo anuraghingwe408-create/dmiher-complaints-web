@@ -38,8 +38,7 @@ const connectDB = async () => {
             maxPoolSize: 10,                  // Maximum connection pool size
             minPoolSize: 2,                   // Minimum connection pool size
             autoIndex: true,                  // Build indexes automatically
-            family: 4,                        // Use IPv4, skip trying IPv6
-            bufferCommands: false             // Disable command buffering
+            family: 4                         // Use IPv4, skip trying IPv6
         });
         
         // Wait for connection to be ready
