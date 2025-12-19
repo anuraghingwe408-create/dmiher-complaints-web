@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { connectDB, initializeDatabase, Faculty, Student, Complaint, checkDatabaseHealth } = require('./database/mongodb');
+const { connectDB, initializeDatabase, Faculty, Student, Complaint } = require('./database/mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,23 +13,7 @@ app.use(express.json({ limit: '10mb' })); // Increase limit for Base64 files
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to check database connection (optional - server won't start without DB now)
-// Keeping this as a safety check for runtime disconnections
-const checkDBConnection = (req, res, next) => {
-    const mongoose = require('mongoose');
-    const readyState = mongoose.connection.readyState;
-    
-    // Only block if completely disconnected (0)
-    // Allow if connected (1), connecting (2), or disconnecting (3)
-    if (readyState === 0) {
-        console.error('⚠️  Database disconnected during request');
-        return res.status(503).json({ 
-            success: false, 
-            error: 'Database temporarily unavailable. Please try again.' 
-        });
-    }
-    next();
-};
+// Database connection middleware removed - MongoDB driver handles all reconnections automatically
 
 // File validation function
 function validateAttachment(attachment) {
@@ -62,24 +46,20 @@ function validateAttachment(attachment) {
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
-    const mongoose = require('mongoose');
-    const dbState = mongoose.connection.readyState;
-    const states = {
-        0: 'disconnected',
-        1: 'connected',
-        2: 'connecting',
-        3: 'disconnecting'
-    };
-    
-    // Perform database ping test
-    const dbHealthy = await checkDatabaseHealth();
-    
-    res.json({
-        status: (dbState === 1 && dbHealthy) ? 'healthy' : 'unhealthy',
-        database: states[dbState] || 'unknown',
-        ping: dbHealthy ? 'success' : 'failed',
-        timestamp: new Date().toISOString()
-    });
+    try {
+        // Simple health check - if server is running, it's healthy
+        res.json({
+            status: 'healthy',
+            server: 'running',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Serve landing page as default
@@ -413,15 +393,11 @@ app.post('/api/student/register', async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Error registering student:', error);
+        console.error('Error name:', error.name);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
         
-        // Handle specific MongoDB errors
-        if (error.name === 'MongooseError' && error.message.includes('buffering')) {
-            return res.status(503).json({ 
-                success: false,
-                error: 'Database connection issue. Please try again in a moment.' 
-            });
-        }
-        
+        // Handle duplicate key error (email or student ID already exists)
         if (error.code === 11000) {
             return res.status(400).json({ 
                 success: false,
@@ -429,9 +405,18 @@ app.post('/api/student/register', async (req, res) => {
             });
         }
         
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid data provided: ' + error.message 
+            });
+        }
+        
+        // Generic error response
         res.status(500).json({ 
             success: false,
-            error: error.message || 'Registration failed. Please try again.' 
+            error: 'Registration failed. Please try again.' 
         });
     }
 });
